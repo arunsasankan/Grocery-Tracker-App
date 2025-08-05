@@ -1,126 +1,94 @@
 <!-- templates/edit_item.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Grocery Item</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'%3E%3C/circle%3E%3Ccircle cx='20' cy='21' r='1'%3E%3C/circle%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'%3E%3C/path%3E%3C/svg%3E">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-     <script>
-        // Apply theme based on system preference
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-</head>
-<body class="bg-gray-50 dark:bg-gray-900">
+{% extends "layout.html" %}
+{% block title %}Edit Item - Grocery Tracker{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl relative">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit '{{ item.name }}'</h1>
+        <form action="{{ url_for('edit_item', id=item.id) }}" method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Item Name -->
+                <div class="md:col-span-2">
+                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Name</label>
+                    <input type="text" name="name" id="name" value="{{ item.name }}" required class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
 
-    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-2xl relative">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit '{{ item.name }}'</h1>
-            <form action="{{ url_for('edit_item', id=item.id) }}" method="post">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Item Name -->
-                    <div class="md:col-span-2">
-                        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Name</label>
-                        <input type="text" name="name" id="name" value="{{ item.name }}" required class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <!-- Category -->
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                    <select name="category" id="category" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        {% for category in categories %}
+                            <option {% if category == item.category %}selected{% endif %}>{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Type -->
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
+                    <select name="type" id="type" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option {% if item.type == 'Perishable' %}selected{% endif %}>Perishable</option>
+                        <option {% if item.type == 'Non-Perishable' %}selected{% endif %}>Non-Perishable</option>
+                    </select>
+                </div>
+
+                <!-- Quantity & Unit -->
+                <div class="flex items-end space-x-2">
+                    <div class="flex-grow">
+                        <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
+                        <input type="number" name="quantity" id="quantity" value="{{ item.quantity }}" required min="0" step="0.01" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                     </div>
-
-                    <!-- Category -->
                     <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-                        <select name="category" id="category" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                            {% for category in categories %}
-                                <option {% if category == item.category %}selected{% endif %}>{{ category }}</option>
+                        <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
+                        <select name="quantity_unit" id="quantity_unit" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            {% for unit in units %}
+                                <option {% if unit == item.quantity_unit %}selected{% endif %}>{{ unit }}</option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <!-- Type -->
-                    <div>
-                        <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
-                        <select name="type" id="type" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                            <option {% if item.type == 'Perishable' %}selected{% endif %}>Perishable</option>
-                            <option {% if item.type == 'Non-Perishable' %}selected{% endif %}>Non-Perishable</option>
-                        </select>
-                    </div>
-
-                    <!-- Quantity & Unit -->
-                    <div class="flex items-end space-x-2">
-                        <div class="flex-grow">
-                            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
-                            <input type="number" name="quantity" id="quantity" value="{{ item.quantity }}" required min="0" step="0.01" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="quantity_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Unit</label>
-                            <select name="quantity_unit" id="quantity_unit" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                {% for unit in units %}
-                                    <option {% if unit == item.quantity_unit %}selected{% endif %}>{{ unit }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Status -->
-                    <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                        <select name="status" id="status" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                            {% for status in statuses %}
-                                <option {% if status == item.status %}selected{% endif %}>{{ status }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                     <!-- Purchase Date -->
-                    <div>
-                        <label for="purchase_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Purchase Date</label>
-                        <input type="date" name="purchase_date" id="purchase_date" value="{{ item.purchase_date.strftime('%Y-%m-%d') if item.purchase_date else '' }}" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    </div>
-
-                    <!-- Expiry Date -->
-                    <div>
-                        <label for="expiry_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Expiry Date (Optional)</label>
-                        <input type="date" name="expiry_date" id="expiry_date" value="{{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '' }}" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                    </div>
                 </div>
 
-                <!-- Is Essential Checkbox -->
-                <div class="mt-6">
-                    <div class="flex items-start">
-                        <div class="flex items-center h-5">
-                            <input id="is_essential" name="is_essential" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 rounded" {% if item.is_essential %}checked{% endif %}>
-                        </div>
-                        <div class="ml-3 text-sm">
-                            <label for="is_essential" class="font-medium text-gray-700 dark:text-gray-300">Is Essential?</label>
-                            <p class="text-gray-500 dark:text-gray-400">Uncheck this if the item is optional for the next shopping trip.</p>
-                        </div>
-                    </div>
+                <!-- Status -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                    <select name="status" id="status" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        {% for status in statuses %}
+                            <option {% if status == item.status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <div class="mt-8 flex justify-end space-x-3">
-                    <a href="{{ url_for('index') }}" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition duration-300">Cancel</a>
-                    <button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">Save Changes</button>
+                 <!-- Purchase Date -->
+                <div>
+                    <label for="purchase_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Purchase Date</label>
+                    <input type="date" name="purchase_date" id="purchase_date" value="{{ item.purchase_date.strftime('%Y-%m-%d') if item.purchase_date else '' }}" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
-            </form>
-        </div>
+
+                <!-- Expiry Date -->
+                <div>
+                    <label for="expiry_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Expiry Date (Optional)</label>
+                    <input type="date" name="expiry_date" id="expiry_date" value="{{ item.expiry_date.strftime('%Y-%m-%d') if item.expiry_date else '' }}" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+            </div>
+
+            <!-- Is Essential Checkbox -->
+            <div class="mt-6">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="is_essential" name="is_essential" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 rounded" {% if item.is_essential %}checked{% endif %}>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="is_essential" class="font-medium text-gray-700 dark:text-gray-300">Is Essential?</label>
+                        <p class="text-gray-500 dark:text-gray-400">Uncheck this if the item is optional for the next shopping trip.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end space-x-3">
+                <a href="{{ url_for('index') }}" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition duration-300">Cancel</a>
+                <button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">Save Changes</button>
+            </div>
+        </form>
     </div>
-    <script>
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-            if (event.matches) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        });
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}

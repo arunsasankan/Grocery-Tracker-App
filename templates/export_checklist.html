@@ -105,7 +105,8 @@
     
     <div class="actions">
         <button class="button" onclick="window.print()">Print List</button>
-        <button class="button" onclick="window.close()">Close</button>
+        <a href="{{ url_for('shopping_list') }}" class="button">Back to Shopping List</a>
+        <button class="button" onclick="window.close()">Close Tab</button>
     </div>
 
     <h2>Essential Items</h2>
