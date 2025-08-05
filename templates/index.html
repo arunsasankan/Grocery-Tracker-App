@@ -7,9 +7,19 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
              <div>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-0">Grocery Inventory</h1>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Welcome, {{ current_user.username }}!</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Welcome, {{ current_user.username }}!
+                    {% if current_user.household_name %}
+                        <span class="font-semibold">({{ current_user.household_name }})</span>
+                    {% endif %}
+                </p>
             </div>
             <div class="w-full sm:w-auto flex items-center flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 sm:mt-0">
+                {% if current_user.is_admin() %}
+                <a href="{{ url_for('admin_dashboard') }}" class="w-full sm:w-auto text-center bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300">
+                    <i class="fas fa-user-shield mr-2"></i>Admin
+                </a>
+                {% endif %}
                 <a href="{{ url_for('dashboard') }}" class="w-full sm:w-auto text-center bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-purple-700 transition duration-300">
                     <i class="fas fa-chart-line mr-2"></i>Dashboard
                 </a>
@@ -24,6 +34,16 @@
                 </a>
             </div>
         </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 bg-{{ {'danger': 'red', 'warning': 'yellow', 'success': 'green', 'info': 'blue'}[category] }}-100 border-l-4 border-{{ {'danger': 'red', 'warning': 'yellow', 'success': 'green', 'info': 'blue'}[category] }}-500 text-{{ {'danger': 'red', 'warning': 'yellow', 'success': 'green', 'info': 'blue'}[category] }}-700 p-4 rounded-md" role="alert">
+                        <p>{{ message }}</p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <!-- Search Form -->
         <div class="mb-6">
@@ -42,8 +62,8 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Item</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Category</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Modified On</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Modified By</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Expiry Date</th>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Days to Expiry</th>
@@ -55,8 +75,8 @@
                     <tr class="grocery-item hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150">
                         <td class="item-name px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ item.name }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ item.category }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ item.type }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ item.quantity }} {{ item.quantity_unit }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ item.modified_on.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ item.modified_by_user or item.created_by_user }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold
                             {% if item.status == 'Running low' %}status-low
                             {% elif item.status == 'In-Stock' %}status-in-stock
@@ -102,7 +122,7 @@
                                 <div class="flex justify-between items-start">
                                     <div>
                                         <p class="item-name text-lg font-bold text-gray-900 dark:text-white">{{ item.name }}</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.type }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Last modified by: {{ item.modified_by_user or item.created_by_user }}</p>
                                     </div>
                                     <div class="flex space-x-4 text-lg">
                                         <a href="{{ url_for('edit_item', id=item.id) }}" class="text-indigo-600 dark:text-indigo-400"><i class="fas fa-edit"></i></a>
@@ -148,72 +168,4 @@
         </div>
         <div id="no-results" class="text-center py-10 text-gray-500 dark:text-gray-400 hidden">No items match your search.</div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Accordion functionality
-            const accordionHeaders = document.querySelectorAll('.accordion-header');
-            accordionHeaders.forEach(header => {
-                header.addEventListener('click', () => {
-                    const content = header.nextElementSibling;
-                    const icon = header.querySelector('.accordion-icon');
-                    
-                    content.classList.toggle('hidden');
-                    icon.classList.toggle('rotate-180');
-                });
-            });
-
-            // Search functionality
-            const searchInput = document.getElementById('searchInput');
-            const desktopItemList = document.querySelector('.hidden.sm\\:block'); 
-            const mobileItemList = document.getElementById('mobile-item-list');
-            const noResultsMessage = document.getElementById('no-results');
-
-            function filterItems() {
-                const searchTerm = searchInput.value.toLowerCase();
-                let anyItemFound = false;
-
-                const desktopRows = desktopItemList.querySelectorAll('.grocery-item');
-                desktopRows.forEach(row => {
-                    const itemName = row.querySelector('.item-name').textContent.toLowerCase();
-                    if (itemName.includes(searchTerm)) {
-                        row.style.display = '';
-                        anyItemFound = true;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                const accordionContainers = mobileItemList.querySelectorAll('.accordion-container');
-                accordionContainers.forEach(container => {
-                    const itemsInCategory = container.querySelectorAll('.grocery-item');
-                    let categoryHasVisibleItem = false;
-
-                    itemsInCategory.forEach(item => {
-                        const itemName = item.querySelector('.item-name').textContent.toLowerCase();
-                        if (itemName.includes(searchTerm)) {
-                            item.style.display = '';
-                            categoryHasVisibleItem = true;
-                            anyItemFound = true;
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-
-                    if (categoryHasVisibleItem) {
-                        container.style.display = '';
-                    } else {
-                        container.style.display = 'none';
-                    }
-                });
-                
-                noResultsMessage.style.display = anyItemFound ? 'none' : 'block';
-            }
-
-            if (searchInput) {
-                searchInput.addEventListener('keyup', filterItems);
-                searchInput.addEventListener('search', filterItems);
-            }
-        });
-    </script>
 {% endblock %}
