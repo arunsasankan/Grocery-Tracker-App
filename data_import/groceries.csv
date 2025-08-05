@@ -1,0 +1,120 @@
+﻿name,type,category,status,quantity,quantity_unit,purchase_date,is_essential,expiry_date,notes,user_id
+Putt Powder,Non-Perishable,Breakfast & Cereal,Excess,2,kg,45724,TRUE,,,1
+Appam/Idiyappam Powder,Non-Perishable,Breakfast & Cereal,In-Stock,1,Packet,45724,TRUE,,,1
+Museli/Cereal,Non-Perishable,Breakfast & Cereal,Running Low,100,g,45724,TRUE,,,1
+Idly/Dosa Chutney Powder,Non-Perishable,Breakfast & Cereal,In-Stock,1,Packet,45724,TRUE,,,1
+Idly/Dosa/Appam Batter,Perishable,Breakfast & Cereal,In-Stock,1,Packet,45724,TRUE,,,1
+Sugar,Non-Perishable,Condiments & Sauces,Running Low,150,g,45724,TRUE,,,1
+Tea Powder,Non-Perishable,Condiments & Sauces,Running Low,50,g,45724,TRUE,,,1
+Coffee Powder,Non-Perishable,Condiments & Sauces,In-Stock,150,g,45724,TRUE,,,1
+Tamarind(Regular),Non-Perishable,Condiments & Sauces,Running Low,50,g,45724,TRUE,,,1
+Malabar Tamarind(Kudampuli),Non-Perishable,Condiments & Sauces,Running Low,0,g,45724,TRUE,,,1
+Coconut Oil,Non-Perishable,Condiments & Sauces,Running Low,0,liters,45724,FALSE,,,1
+Sunflower Oil,Non-Perishable,Condiments & Sauces,In-Stock,850,ml,45724,TRUE,,,1
+Noodles,Non-Perishable,Condiments & Sauces,Excess,20,Packet,45724,TRUE,,,1
+Pasta,Non-Perishable,Condiments & Sauces,In-Stock,700,g,45724,TRUE,,,1
+Jaggery,Non-Perishable,Condiments & Sauces,In-Stock,500,g,45724,TRUE,,,1
+Soya Chunks,Non-Perishable,Condiments & Sauces,Excess,400,g,45724,TRUE,,,1
+Tomato Rice Powder,Non-Perishable,Condiments & Sauces,In-Stock,1,Packet,45724,TRUE,,,1
+Lemon Rice Powder,Non-Perishable,Condiments & Sauces,In-Stock,1,Packet,45724,TRUE,,,1
+Puliyogare Powder,Non-Perishable,Condiments & Sauces,Running Low,0,Packet,45724,FALSE,,,1
+Soy Sauce,Non-Perishable,Condiments & Sauces,In-Stock,1,Bottle,45724,TRUE,,,1
+Red Chilli Sauce,Non-Perishable,Condiments & Sauces,In-Stock,1,Bottle,45724,TRUE,,,1
+Green Chilli Sauce,Non-Perishable,Condiments & Sauces,In-Stock,1,Bottle,45724,TRUE,,,1
+Payasam Mix,Non-Perishable,Condiments & Sauces,In-Stock,200,g,45724,FALSE,,,1
+Peanut Butter,Non-Perishable,Condiments & Sauces,In-Stock,1,Bottle,45724,TRUE,,,1
+Pickles,Non-Perishable,Condiments & Sauces,In-Stock,1,Bottle,45724,FALSE,,,1
+Pappadom,Non-Perishable,Condiments & Sauces,In-Stock,3,Packet,45724,FALSE,,,1
+Nutella,Non-Perishable,Condiments & Sauces,In-Stock,150,g,45724,FALSE,,,1
+Eggs,Perishable,Dairy & Eggs,In-Stock,4,Count,45724,TRUE,,,1
+Milk,Perishable,Dairy & Eggs,In-Stock,1,Packet,45724,TRUE,,,1
+Cheese Slices,Perishable,Dairy & Eggs,In-Stock,1,Packet,45724,FALSE,,,1
+Butter,Perishable,Dairy & Eggs,In-Stock,100,g,45724,FALSE,,,1
+Parmesan Cheese,Perishable,Dairy & Eggs,In-Stock,50,g,45724,FALSE,,,1
+Brown Rice,Non-Perishable,Grains,Excess,2.5,kg,45724,FALSE,,,1
+Sona Masoori Rice,Non-Perishable,Grains,Running Low,1.5,kg,45724,TRUE,,,1
+Raw Rice,Non-Perishable,Grains,Running Low,0,kg,45724,TRUE,,,1
+Aval(Rice Flakes),Non-Perishable,Grains,In-Stock,500,g,45724,TRUE,,,1
+Detergent Liquid,Non-Perishable,Household & Cleaning,Running Low,100,ml,45724,TRUE,,,1
+Dishwash Liquid,Non-Perishable,Household & Cleaning,Running Low,100,ml,45724,TRUE,,,1
+Handwash ,Non-Perishable,Household & Cleaning,In-Stock,500,ml,45724,TRUE,,,1
+Air Wick (Refill),Non-Perishable,Household & Cleaning,Running Low,0,Count,45724,FALSE,,,1
+Room Freshner Spray,Non-Perishable,Household & Cleaning,Running Low,0,Count,45724,FALSE,,,1
+Pooja Oil,Non-Perishable,Household & Cleaning,In-Stock,500,ml,45724,TRUE,,,1
+Match Boxes,Non-Perishable,Household & Cleaning,In-Stock,1,Count,45724,TRUE,,,1
+Agarbathi,Non-Perishable,Household & Cleaning,Excess,100,Count,45724,TRUE,,,1
+Sambrani Cone,Non-Perishable,Household & Cleaning,In-Stock,1,Packet,45724,FALSE,,,1
+Vilakku Thiri,Non-Perishable,Household & Cleaning,Excess,1,Packet,45724,TRUE,,,1
+Camphor,Non-Perishable,Household & Cleaning,In-Stock,30,g,45724,TRUE,,,1
+Harpic,Non-Perishable,Household & Cleaning,Running Low,0,liters,45724,TRUE,,,1
+Floor Cleaner,Non-Perishable,Household & Cleaning,In-Stock,1,Bottle,45724,TRUE,,,1
+Kitchen Tissue,Non-Perishable,Household & Cleaning,In-Stock,2,Count,45724,TRUE,,,1
+Kitchen Towel,Non-Perishable,Household & Cleaning,In-Stock,4,Count,45724,TRUE,,,1
+Steel Wool Scrubber,Non-Perishable,Household & Cleaning,In-Stock,2,Count,45724,TRUE,,,1
+Sponge Scrubber,Non-Perishable,Household & Cleaning,In-Stock,2,Count,45724,TRUE,,,1
+Harpic Flush Cakes,Non-Perishable,Household & Cleaning,Running Low,1,Count,45724,TRUE,,,1
+Chicken Meat,Perishable,Meat & Fish,Running Low,0,kg,45724,FALSE,,,1
+Chicken Parts,Perishable,Meat & Fish,Running Low,0,kg,45724,FALSE,,,1
+Fish,Perishable,Meat & Fish,In-Stock,1.5,kg,45724,FALSE,,,1
+Toilet Soap,Non-Perishable,Personal Care,In-Stock,3,Count,45724,TRUE,,,1
+Shampoo,Non-Perishable,Personal Care,In-Stock,1,Bottle,45724,TRUE,,,1
+Hair Oil,Non-Perishable,Personal Care,In-Stock,1,Bottle,45724,TRUE,,,1
+Moisturizer,Non-Perishable,Personal Care,Running Low,0,Bottle,45724,TRUE,,,1
+Roll On - Male,Non-Perishable,Personal Care,Running Low,0,Bottle,45724,TRUE,,,1
+Roll On - Female,Non-Perishable,Personal Care,Running Low,0,Bottle,45724,TRUE,,,1
+Deoderant Spray,Non-Perishable,Personal Care,In-Stock,1,Bottle,45724,TRUE,,,1
+Lakme Face Moisturizer,Non-Perishable,Personal Care,In-Stock,1,Packet,45724,TRUE,,,1
+Tooth Paste,Non-Perishable,Personal Care,In-Stock,2,Count,45724,TRUE,,,1
+Tooth Brush,Non-Perishable,Personal Care,In-Stock,2,Count,45724,TRUE,,,1
+Wipes/Wet Tissue,Non-Perishable,Personal Care,In-Stock,1,Packet,45724,TRUE,,,1
+Onions,Perishable,Produce,In-Stock,1,kg,45724,TRUE,,,1
+Tomato,Perishable,Produce,In-Stock,700,g,45724,TRUE,,,1
+Potato,Perishable,Produce,In-Stock,1,kg,45724,TRUE,,,1
+Curry Leaves,Perishable,Produce,In-Stock,,kg,45724,TRUE,,,1
+Green Chilli,Perishable,Produce,In-Stock,100,g,45724,TRUE,,,1
+Shallots,Perishable,Produce,In-Stock,500,g,45724,TRUE,,,1
+Coconuts,Perishable,Produce,In-Stock,2,Count,45724,TRUE,,,1
+Carrot,Perishable,Produce,In-Stock,300,g,45724,TRUE,,,1
+Kovakka,Perishable,Produce,In-Stock,500,g,45724,TRUE,,,1
+Spinach - Palak,Perishable,Produce,Running Low,0,Count,45724,FALSE,,,1
+Spinach - Cheera,Perishable,Produce,Running Low,0,Count,45724,FALSE,,,1
+Long Payar,Perishable,Produce,Running Low,500,g,45724,TRUE,,,1
+Beans,Perishable,Produce,Running Low,500,g,45724,TRUE,,,1
+Bitter Gourd(Pavakka),Perishable,Produce,Running Low,0,kg,45724,FALSE,,,1
+Lady's Finger(Vendakka),Perishable,Produce,In-Stock,400,g,45724,TRUE,,,1
+Brinjal,Perishable,Produce,In-Stock,150,g,45724,TRUE,,,1
+Ginger,Perishable,Produce,In-Stock,200,g,45724,TRUE,,,1
+Garlic,Perishable,Produce,In-Stock,150,g,45724,TRUE,,,1
+Lemon/Lime,Perishable,Produce,In-Stock,5,Count,45724,TRUE,,,1
+Capsicum,Perishable,Produce,In-Stock,300,g,45724,TRUE,,,1
+Frozen Green Peas,Perishable,Produce,In-Stock,100,g,45724,FALSE,,,1
+Uzhunnu,Non-Perishable,Pulses,Running Low,100,g,45724,FALSE,,,1
+Toor Dal,Non-Perishable,Pulses,In-Stock,1,kg,45724,TRUE,,,1
+Masoor Dal,Non-Perishable,Pulses,In-Stock,1,kg,45724,TRUE,,,1
+Bengal Grams,Non-Perishable,Pulses,In-Stock,500,g,45724,TRUE,,,1
+Chana Dal,Non-Perishable,Pulses,In-Stock,200,g,45724,TRUE,,,1
+Moong Dal,Non-Perishable,Pulses,In-Stock,1.5,kg,45724,TRUE,,,1
+Muthira,Non-Perishable,Pulses,In-Stock,200,g,45724,TRUE,,,1
+Vanpayar,Non-Perishable,Pulses,In-Stock,100,g,45724,TRUE,,,1
+Besan,Non-Perishable,Pulses,In-Stock,100,g,45724,TRUE,,,1
+Maida,Non-Perishable,Pulses,In-Stock,200,g,45724,TRUE,,,1
+Raggi Powder,Non-Perishable,Pulses,Excess,2,kg,45724,TRUE,,,1
+Health Mix Powder,Non-Perishable,Pulses,Excess,3,Packet,45724,TRUE,,,1
+Green Peas,Non-Perishable,Pulses,In-Stock,150,g,45724,TRUE,,,1
+Raw Peanuts,Non-Perishable,Pulses,Excess,750,g,45724,FALSE,,,1
+Wheat Powder,Non-Perishable,Pulses,In-Stock,750,g,45724,TRUE,,,1
+Kashmiri Chilli Powder,Non-Perishable,Spices,Running Low,250,g,45724,TRUE,,,1
+Coriander Poweder,Non-Perishable,Spices,Running Low,200,g,45724,TRUE,,,1
+Salt,Non-Perishable,Spices,In-Stock,500,g,45724,TRUE,,,1
+Fenugreek(Uluva),Non-Perishable,Spices,In-Stock,25,g,45724,TRUE,,,1
+Asafoeitida(Kaayam),Non-Perishable,Spices,In-Stock,1,Bottle,45724,TRUE,,,1
+Turmeric Powder,Non-Perishable,Spices,In-Stock,30,g,45724,TRUE,,,1
+Jeera,Non-Perishable,Spices,In-Stock,1,Packet,45724,TRUE,,,1
+Jeera Powder,Non-Perishable,Spices,In-Stock,1,Packet,45724,TRUE,,,1
+Fennel(Perumjeerakam),Non-Perishable,Spices,In-Stock,1,Packet,45724,TRUE,,,1
+Black Pepper,Non-Perishable,Spices,In-Stock,200,g,45724,TRUE,,,1
+Mustard Seeds,Non-Perishable,Spices,In-Stock,50,g,45724,TRUE,,,1
+Chicken Masala,Non-Perishable,Spices,In-Stock,1,Packet,45724,TRUE,,,1
+Sambar Powder,Non-Perishable,Spices,In-Stock,50,g,45724,TRUE,,,1
+Biriyani Masala,Non-Perishable,Spices,In-Stock,50,g,45724,TRUE,,,1
+Dried Red Chillies,Non-Perishable,Spices,In-Stock,50,g,45724,TRUE,,,1

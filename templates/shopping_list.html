@@ -1,0 +1,191 @@
+<!-- templates/shopping_list.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping List</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'%3E%3C/circle%3E%3Ccircle cx='20' cy='21' r='1'%3E%3C/circle%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'%3E%3C/path%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .accordion-icon.rotate-180 {
+            transform: rotate(180deg);
+        }
+    </style>
+     <script>
+        // Apply theme based on system preference
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Shopping List</h1>
+            <div class="flex items-center flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <a href="{{ url_for('index') }}" class="w-full sm:w-auto text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Inventory
+                </a>
+                <a href="{{ url_for('export_shopping_list') }}" target="_blank" class="w-full sm:w-auto text-center bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-800 transition duration-300">
+                    <i class="fas fa-print mr-2"></i>Export as Checklist
+                </a>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            <!-- Essential Items -->
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b-2 border-red-500 pb-2">
+                    <i class="fas fa-star text-red-500 mr-2"></i>Essential Items
+                </h2>
+                <!-- Desktop List for Essential Items -->
+                <div class="hidden sm:block bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    {% if essential_items %}
+                        <ul class="space-y-4">
+                            {% for item in essential_items %}
+                                <li class="flex items-center justify-between p-4 bg-red-50 dark:bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        {% if item.reason == 'Expired' %}
+                                            <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full mr-4">Expired</span>
+                                        {% endif %}
+                                        <i class="fas fa-shopping-basket text-red-500 text-xl"></i>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center text-gray-500 dark:text-gray-400 py-4">No essential items on the list.</p>
+                    {% endif %}
+                </div>
+                <!-- Mobile Accordion for Essential Items -->
+                <div class="block sm:hidden space-y-3">
+                    {% if grouped_essential_items %}
+                        {% for category, items_in_category in grouped_essential_items.items() %}
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                            <button class="accordion-header w-full flex justify-between items-center p-4 text-left font-bold text-gray-800 dark:text-white bg-red-50 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-gray-600 focus:outline-none border-b border-gray-200 dark:border-gray-600">
+                                <span>{{ category }}</span>
+                                <div class="flex items-center">
+                                    <span class="mr-2 px-2 py-0.5 bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300 text-xs font-semibold rounded-full">{{ items_in_category|length }}</span>
+                                    <i class="fas fa-chevron-down accordion-icon transition-transform duration-300"></i>
+                                </div>
+                            </button>
+                            <div class="accordion-content hidden p-4 space-y-3">
+                                {% for item in items_in_category %}
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-3 first:border-t-0 first:pt-0">
+                                    <div class="flex justify-between items-center">
+                                        <p class="font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
+                                        {% if item.reason == 'Expired' %}
+                                            <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full">Expired</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center text-gray-500 dark:text-gray-400">No essential items on the list.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Optional Items -->
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4 border-b-2 border-yellow-500 pb-2">
+                    <i class="fas fa-coffee text-yellow-500 mr-2"></i>Optional Items
+                </h2>
+                <!-- Desktop List for Optional Items -->
+                <div class="hidden sm:block bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    {% if optional_items %}
+                        <ul class="space-y-4">
+                            {% for item in optional_items %}
+                                <li class="flex items-center justify-between p-4 bg-yellow-50 dark:bg-gray-700 rounded-lg">
+                                    <div>
+                                        <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        {% if item.reason == 'Expired' %}
+                                            <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full mr-4">Expired</span>
+                                        {% endif %}
+                                        <i class="fas fa-shopping-basket text-yellow-500 text-xl"></i>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center text-gray-500 dark:text-gray-400 py-4">No optional items on the list.</p>
+                    {% endif %}
+                </div>
+                 <!-- Mobile Accordion for Optional Items -->
+                <div class="block sm:hidden space-y-3">
+                    {% if grouped_optional_items %}
+                        {% for category, items_in_category in grouped_optional_items.items() %}
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+                            <button class="accordion-header w-full flex justify-between items-center p-4 text-left font-bold text-gray-800 dark:text-white bg-yellow-50 dark:bg-gray-700 hover:bg-yellow-100 dark:hover:bg-gray-600 focus:outline-none border-b border-gray-200 dark:border-gray-600">
+                                <span>{{ category }}</span>
+                                <div class="flex items-center">
+                                    <span class="mr-2 px-2 py-0.5 bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 text-xs font-semibold rounded-full">{{ items_in_category|length }}</span>
+                                    <i class="fas fa-chevron-down accordion-icon transition-transform duration-300"></i>
+                                </div>
+                            </button>
+                            <div class="accordion-content hidden p-4 space-y-3">
+                                {% for item in items_in_category %}
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-3 first:border-t-0 first:pt-0">
+                                     <div class="flex justify-between items-center">
+                                        <p class="font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
+                                        {% if item.reason == 'Expired' %}
+                                            <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full">Expired</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center text-gray-500 dark:text-gray-400">No optional items on the list.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+             // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            });
+
+            // Accordion functionality
+            const accordionHeaders = document.querySelectorAll('.accordion-header');
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('.accordion-icon');
+                    
+                    content.classList.toggle('hidden');
+                    icon.classList.toggle('rotate-180');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

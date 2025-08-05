@@ -1,0 +1,189 @@
+<!-- templates/dashboard.html -->
+{% extends "layout.html" %}
+{% block title %}Dashboard - Grocery Tracker{% endblock %}
+{% block content %}
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">A quick overview of your inventory.</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="mt-4 sm:mt-0 w-full sm:w-auto text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Inventory
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center">
+            <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-full">
+                <i class="fas fa-box-open text-2xl text-blue-500 dark:text-blue-300"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Items</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary_cards.total_items }}</p>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center">
+            <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-full">
+                <i class="fas fa-exclamation-triangle text-2xl text-yellow-500 dark:text-yellow-300"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Items Running Low</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary_cards.running_low }}</p>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex items-center">
+            <div class="bg-red-100 dark:bg-red-900 p-4 rounded-full">
+                <i class="fas fa-calendar-times text-2xl text-red-500 dark:text-red-300"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Items Expired</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ summary_cards.expired_count }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Items by Category Chart -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-4">Items by Category</h3>
+            <canvas id="categoryChart"></canvas>
+        </div>
+
+        <!-- Inventory Status Chart -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-4">Inventory Status</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+
+        <!-- Perishable vs Non-Perishable & Upcoming Expiries -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg lg:col-span-2">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-4">Item Types</h3>
+                    <canvas id="typeChart"></canvas>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-4">Expiring in Next 7 Days</h3>
+                    <div class="space-y-3">
+                        {% for item in upcoming_expiries %}
+                            <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                                <p class="font-medium text-gray-800 dark:text-gray-200">{{ item.name }}</p>
+                                <p class="text-sm text-red-500 dark:text-red-400 font-semibold">{{ item.expiry_date.strftime('%b %d, %Y') }}</p>
+                            </div>
+                        {% else %}
+                            <p class="text-center text-gray-500 dark:text-gray-400 py-4">No items are expiring soon.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Safely pass data from Flask to JavaScript
+            const categoryData = JSON.parse('{{ category_data | tojson | safe }}');
+            const statusData = JSON.parse('{{ status_data | tojson | safe }}');
+            const typeData = JSON.parse('{{ type_data | tojson | safe }}');
+
+            const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const textColor = isDarkMode ? 'rgba(229, 231, 235, 0.8)' : 'rgba(55, 65, 81, 1)';
+            const gridColor = isDarkMode ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)';
+
+            // 1. Category Chart (Bar)
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: categoryData.labels,
+                    datasets: [{
+                        label: 'Items per Category',
+                        data: categoryData.data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        }
+                    }
+                }
+            });
+
+            // 2. Status Chart (Doughnut)
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: statusData.labels,
+                    datasets: [{
+                        data: statusData.data,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)',  // Running low
+                            'rgba(34, 197, 94, 0.7)', // In-Stock
+                            'rgba(59, 130, 246, 0.7)', // Excess
+                            'rgba(107, 114, 128, 0.7)' // Not Needed
+                        ],
+                        borderColor: isDarkMode ? '#1f2937' : '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: textColor }
+                        }
+                    }
+                }
+            });
+
+            // 3. Item Type Chart (Pie)
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            new Chart(typeCtx, {
+                type: 'pie',
+                data: {
+                    labels: typeData.labels,
+                    datasets: [{
+                        data: typeData.data,
+                        backgroundColor: [
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(16, 185, 129, 0.7)'
+                        ],
+                        borderColor: isDarkMode ? '#1f2937' : '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: textColor }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</div>
+{% endblock %}
