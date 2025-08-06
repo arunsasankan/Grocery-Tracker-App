@@ -60,7 +60,7 @@ def get_db_connection():
 # --- Constants for Forms ---
 CATEGORIES = ['Dairy & Eggs', 'Bakery', 'Meat & Fish', 'Produce', 'Spices', 'Pulses', 'Grains', 'Condiments', 'Baking', 'Breakfast & Cereal', 'Snacks', 'Frozen Foods', 'Beverages', 'Household & Personal Care', 'Other']
 UNITS = ['Count', 'kg', 'g', 'liters', 'ml', 'Packet', 'Bottle', 'Other']
-STATUSES = ['Running low', 'In-Stock', 'Excess', 'Not Needed Anymore']
+STATUSES = ['Running low', 'In-Stock', 'Excess', 'Buy More']
 
 # --- Helper function for audit logging ---
 def log_action(user_id, action, details="", household_id=None):
@@ -330,7 +330,7 @@ def view_household(household_id):
     cursor.execute("SELECT id, name, household_code FROM households WHERE id IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')", (current_user.id,))
     user_households = cursor.fetchall()
     search_query = request.args.get('search', '')
-    sql = "SELECT g.*, u_created.username as created_by_user, u_modified.username as modified_by_user FROM groceries g LEFT JOIN users u_created ON g.created_by = u_created.id LEFT JOIN users u_modified ON g.modified_by = u_modified.id WHERE g.household_id = %s"
+    sql = "SELECT g.*, p.icon_class, u_created.username as created_by_user, u_modified.username as modified_by_user FROM groceries g LEFT JOIN pantry_items p ON g.name = p.name LEFT JOIN users u_created ON g.created_by = u_created.id LEFT JOIN users u_modified ON g.modified_by = u_modified.id WHERE g.household_id = %s"
     params = [household_id]
     if search_query:
         sql += " AND g.name LIKE %s"
@@ -364,8 +364,10 @@ def add_item(household_id):
         quantity_unit = request.form['quantity_unit']
         status = request.form['status']
         is_essential = 'is_essential' in request.form
-        purchase_date = request.form['purchase_date'] or None
+        purchase_date_str = request.form.get('purchase_date')
+        purchase_date = datetime.strptime(purchase_date_str, '%Y-%m-%d').date() if purchase_date_str else date.today()
         expiry_date = request.form['expiry_date'] or None
+
         conn = get_db_connection()
         cursor = conn.cursor()
         sql = "INSERT INTO groceries (household_id, name, category, type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
@@ -381,7 +383,6 @@ def add_item(household_id):
 @login_required
 @household_member_required
 def update_item_inline(household_id, item_id):
-    """Handles quick, inline updates from the main inventory table."""
     data = request.get_json()
     field = data.get('field')
     value = data.get('value')
@@ -489,18 +490,33 @@ def shopping_list(household_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     today = date.today()
-    essential_query = "SELECT * FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = TRUE ORDER BY category ASC, name ASC"
-    cursor.execute(essential_query, (household_id, today))
-    essential_items_flat = cursor.fetchall()
-    optional_query = "SELECT * FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = FALSE ORDER BY category ASC, name ASC"
-    cursor.execute(optional_query, (household_id, today))
-    optional_items_flat = cursor.fetchall()
+    
+    shopping_list_query = "SELECT g.*, p.icon_class FROM groceries g LEFT JOIN pantry_items p ON g.name = p.name WHERE g.household_id = %s AND (g.status IN ('Running low', 'Buy More') OR g.expiry_date < %s) ORDER BY g.is_essential DESC, g.category ASC, g.name ASC"
+    cursor.execute(shopping_list_query, (household_id, today))
+    all_shopping_items = cursor.fetchall()
+    
     conn.close()
-    for item in essential_items_flat + optional_items_flat:
+
+    essential_items_flat = []
+    optional_items_flat = []
+
+    for item in all_shopping_items:
         is_expired = item.get('expiry_date') and item['expiry_date'] < today
-        item['reason'] = 'Expired' if is_expired else 'Running low'
+        if is_expired:
+            item['reason'] = 'Expired'
+        elif item['status'] == 'Buy More':
+            item['reason'] = 'Buy More'
+        else:
+            item['reason'] = 'Running low'
+        
+        if item['is_essential']:
+            essential_items_flat.append(item)
+        else:
+            optional_items_flat.append(item)
+
     grouped_essential = {c: [i for i in essential_items_flat if i['category'] == c] for c in {i['category'] for i in essential_items_flat}}
     grouped_optional = {c: [i for i in optional_items_flat if i['category'] == c] for c in {i['category'] for i in optional_items_flat}}
+
     return render_template('shopping_list.html', 
                            essential_items=essential_items_flat, 
                            optional_items=optional_items_flat,
@@ -515,12 +531,14 @@ def export_shopping_list(household_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     today = date.today()
-    essential_query = "SELECT name FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = TRUE ORDER BY name ASC"
-    cursor.execute(essential_query, (household_id, today))
-    essential_items = cursor.fetchall()
-    optional_query = "SELECT name FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = FALSE ORDER BY name ASC"
-    cursor.execute(optional_query, (household_id, today))
-    optional_items = cursor.fetchall()
+    
+    shopping_list_query = "SELECT name, is_essential FROM groceries WHERE household_id = %s AND (status IN ('Running low', 'Buy More') OR expiry_date < %s) ORDER BY is_essential DESC, name ASC"
+    cursor.execute(shopping_list_query, (household_id, today))
+    all_items = cursor.fetchall()
+    
+    essential_items = [item for item in all_items if item['is_essential']]
+    optional_items = [item for item in all_items if not item['is_essential']]
+    
     conn.close()
     export_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
     return render_template('export_checklist.html', essential_items=essential_items, optional_items=optional_items, export_time=export_time, household_id=household_id)
@@ -543,8 +561,8 @@ def pantry(household_id):
             cursor.execute("SELECT name, type, category FROM pantry_items WHERE id = %s", (item_id,))
             pantry_item = cursor.fetchone()
             if pantry_item:
-                sql = "INSERT INTO groceries (household_id, name, category, type, quantity, quantity_unit, status, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-                val = (household_id, pantry_item['name'], pantry_item['category'], pantry_item['type'], quantity, quantity_unit, status, current_user.id)
+                sql = "INSERT INTO groceries (household_id, name, category, type, quantity, quantity_unit, status, created_by, purchase_date) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                val = (household_id, pantry_item['name'], pantry_item['category'], pantry_item['type'], quantity, quantity_unit, status, current_user.id, date.today())
                 try:
                     cursor.execute(sql, val)
                 except mysql.connector.IntegrityError:

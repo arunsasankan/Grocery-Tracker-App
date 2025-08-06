@@ -27,13 +27,20 @@
                     <ul class="space-y-4">
                         {% for item in essential_items %}
                             <li class="flex items-center justify-between p-4 bg-red-50 dark:bg-gray-700 rounded-lg">
-                                <div>
-                                    <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                <div class="flex items-center">
+                                    <i class="{{ item.icon_class or 'fas fa-question-circle' }} w-5 mr-4 text-gray-400 dark:text-gray-500"></i>
+                                    <div>
+                                        <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                    </div>
                                 </div>
                                 <div class="flex items-center">
                                     {% if item.reason == 'Expired' %}
                                         <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full mr-4">Expired</span>
+                                    {% elif item.reason == 'Buy More' %}
+                                        <span class="text-xs font-bold text-white bg-purple-600 px-2 py-1 rounded-full mr-4">Buy More</span>
+                                    {% elif item.reason == 'Running low' %}
+                                        <span class="text-xs font-bold text-white bg-yellow-500 px-2 py-1 rounded-full mr-4">Running Low</span>
                                     {% endif %}
                                     <i class="fas fa-shopping-basket text-red-500 text-xl"></i>
                                 </div>
@@ -63,6 +70,10 @@
                                     <p class="font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
                                     {% if item.reason == 'Expired' %}
                                         <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full">Expired</span>
+                                    {% elif item.reason == 'Buy More' %}
+                                         <span class="text-xs font-bold text-white bg-purple-600 px-2 py-1 rounded-full">Buy More</span>
+                                    {% elif item.reason == 'Running low' %}
+                                        <span class="text-xs font-bold text-white bg-yellow-500 px-2 py-1 rounded-full">Running Low</span>
                                     {% endif %}
                                 </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
@@ -88,13 +99,20 @@
                     <ul class="space-y-4">
                         {% for item in optional_items %}
                             <li class="flex items-center justify-between p-4 bg-yellow-50 dark:bg-gray-700 rounded-lg">
-                                <div>
-                                    <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                <div class="flex items-center">
+                                    <i class="{{ item.icon_class or 'fas fa-question-circle' }} w-5 mr-4 text-gray-400 dark:text-gray-500"></i>
+                                    <div>
+                                        <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
+                                    </div>
                                 </div>
                                 <div class="flex items-center">
                                     {% if item.reason == 'Expired' %}
                                         <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full mr-4">Expired</span>
+                                    {% elif item.reason == 'Buy More' %}
+                                        <span class="text-xs font-bold text-white bg-purple-600 px-2 py-1 rounded-full mr-4">Buy More</span>
+                                    {% elif item.reason == 'Running low' %}
+                                        <span class="text-xs font-bold text-white bg-yellow-500 px-2 py-1 rounded-full mr-4">Running Low</span>
                                     {% endif %}
                                     <i class="fas fa-shopping-basket text-yellow-500 text-xl"></i>
                                 </div>
@@ -124,6 +142,10 @@
                                     <p class="font-semibold text-gray-800 dark:text-white">{{ item.name }}</p>
                                     {% if item.reason == 'Expired' %}
                                         <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full">Expired</span>
+                                    {% elif item.reason == 'Buy More' %}
+                                        <span class="text-xs font-bold text-white bg-purple-600 px-2 py-1 rounded-full">Buy More</span>
+                                    {% elif item.reason == 'Running low' %}
+                                        <span class="text-xs font-bold text-white bg-yellow-500 px-2 py-1 rounded-full">Running Low</span>
                                     {% endif %}
                                 </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Current: {{ item.quantity }} {{ item.quantity_unit }}</p>
