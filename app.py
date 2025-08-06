@@ -6,6 +6,8 @@ from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
+import random
+import string
 
 # --- Flask App Initialization & Configuration ---
 app = Flask(__name__)
@@ -69,6 +71,10 @@ def log_action(user_id, action, details="", household_id=None):
                    (user_id, household_id, action, details))
     conn.commit()
     conn.close()
+
+def generate_household_code(length=8):
+    """Generates a random alphanumeric code for households."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 # --- Decorators ---
 def household_member_required(f):
@@ -173,8 +179,8 @@ def households():
     other_households_query = "SELECT h.*, u.username as admin_name, uh.status as request_status FROM households h JOIN users u ON h.admin_id = u.id LEFT JOIN user_households uh ON h.id = uh.household_id AND uh.user_id = %s WHERE h.id NOT IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')"
     params = [current_user.id, current_user.id]
     if search_term:
-        other_households_query += " AND h.name LIKE %s"
-        params.append(f"%{search_term}%")
+        other_households_query += " AND (h.name LIKE %s OR h.household_code = %s)"
+        params.extend([f"%{search_term}%", search_term])
     cursor.execute(other_households_query, tuple(params))
     other_households = cursor.fetchall()
     conn.close()
@@ -186,14 +192,18 @@ def create_household():
     name = request.form['name']
     address = request.form['address']
     location = request.form['location']
+    code = generate_household_code()
+
     conn = get_db_connection()
     if not conn: return "Error connecting to database", 500
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO households (name, address, location, admin_id) VALUES (%s, %s, %s, %s)", (name, address, location, current_user.id))
+    cursor.execute("INSERT INTO households (name, address, location, admin_id, household_code) VALUES (%s, %s, %s, %s, %s)",
+                   (name, address, location, current_user.id, code))
     household_id = cursor.lastrowid
-    cursor.execute("INSERT INTO user_households (user_id, household_id, status) VALUES (%s, %s, 'approved')", (current_user.id, household_id))
+    cursor.execute("INSERT INTO user_households (user_id, household_id, status) VALUES (%s, %s, 'approved')",
+                   (current_user.id, household_id))
     conn.commit()
-    log_action(current_user.id, "Household Created", f"Name: {name}", household_id)
+    log_action(current_user.id, "Household Created", f"Name: {name}, Code: {code}", household_id)
     conn.close()
     flash(f"Household '{name}' created successfully!", 'success')
     return redirect(url_for('households'))
@@ -280,6 +290,22 @@ def remove_member(household_id, user_id):
     flash("Member has been removed from the household.", "success")
     return redirect(url_for('manage_household', household_id=household_id))
 
+@app.route('/delete_household/<int:household_id>', methods=['POST'])
+@login_required
+@household_admin_required
+def delete_household(household_id):
+    conn = get_db_connection()
+    if not conn: return "Error", 500
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT name FROM households WHERE id = %s", (household_id,))
+    household = cursor.fetchone()
+    log_action(current_user.id, "Household Deleted", f"Deleted household '{household['name']}' (ID: {household_id})")
+    cursor.execute("DELETE FROM households WHERE id = %s", (household_id,))
+    conn.commit()
+    conn.close()
+    flash(f"Household '{household['name']}' has been permanently deleted.", "success")
+    return redirect(url_for('households'))
+
 # --- Main Application Routes ---
 @app.route('/')
 @login_required
@@ -301,7 +327,7 @@ def index():
 def view_household(household_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, name FROM households WHERE id IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')", (current_user.id,))
+    cursor.execute("SELECT id, name, household_code FROM households WHERE id IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')", (current_user.id,))
     user_households = cursor.fetchall()
     search_query = request.args.get('search', '')
     sql = "SELECT g.*, u_created.username as created_by_user, u_modified.username as modified_by_user FROM groceries g LEFT JOIN users u_created ON g.created_by = u_created.id LEFT JOIN users u_modified ON g.modified_by = u_modified.id WHERE g.household_id = %s"

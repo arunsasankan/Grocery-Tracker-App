@@ -28,6 +28,7 @@ CREATE TABLE households (
     address TEXT,
     location VARCHAR(255),
     admin_id INT NOT NULL,
+    household_code VARCHAR(8) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
 );
