@@ -11,10 +11,6 @@ from functools import wraps
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
 
-# --- Predefined Admin Users ---
-# Any username in this list will be given admin rights upon registration.
-ADMIN_USERS = ['admin', 'superuser'] 
-
 # --- Database Configuration ---
 DB_CONFIG = {
     'host': 'localhost',
@@ -30,33 +26,24 @@ login_manager.login_view = 'login'
 
 # --- User Model ---
 class User(UserMixin):
-    def __init__(self, id, username, role, household_id, household_name=None):
+    def __init__(self, id, username, is_admin=False):
         self.id = id
         self.username = username
-        self.role = role
-        self.household_id = household_id
-        self.household_name = household_name
-
+        self.is_admin_flag = is_admin
+    
     def is_admin(self):
-        return self.role == 'admin'
+        return self.is_admin_flag
 
 @login_manager.user_loader
 def load_user(user_id):
     conn = get_db_connection()
     if not conn: return None
     cursor = conn.cursor(dictionary=True)
-    sql = """
-        SELECT u.id, u.username, r.name as role, u.household_id, h.name as household_name
-        FROM users u 
-        JOIN roles r ON u.role_id = r.id 
-        LEFT JOIN households h ON u.household_id = h.id
-        WHERE u.id = %s
-    """
-    cursor.execute(sql, (user_id,))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user_data = cursor.fetchone()
     conn.close()
     if user_data:
-        return User(id=user_data['id'], username=user_data['username'], role=user_data['role'], household_id=user_data['household_id'], household_name=user_data['household_name'])
+        return User(id=user_data['id'], username=user_data['username'], is_admin=user_data.get('is_superadmin', False))
     return None
 
 # --- Database Connection ---
@@ -68,52 +55,73 @@ def get_db_connection():
         print(f"Error connecting to MySQL: {err}")
         return None
 
-# --- Custom Decorator for Admin Routes ---
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin():
-            return "Unauthorized", 403
-        return f(*args, **kwargs)
-    return decorated_function
-
 # --- Constants for Forms ---
-CATEGORIES = ['Dairy & Eggs', 'Bakery', 'Meat & Fish', 'Produce', 'Spices', 'Pulses', 'Grains', 'Condiments & Sauces', 'Baking', 'Breakfast & Cereal', 'Snacks', 'Frozen Foods', 'Beverages', 'Household & Cleaning', 'Personal Care', 'Other']
+CATEGORIES = ['Dairy & Eggs', 'Bakery', 'Meat & Fish', 'Produce', 'Spices', 'Pulses', 'Grains', 'Condiments', 'Baking', 'Breakfast & Cereal', 'Snacks', 'Frozen Foods', 'Beverages', 'Household & Personal Care', 'Other']
 UNITS = ['Count', 'kg', 'g', 'liters', 'ml', 'Packet', 'Bottle', 'Other']
 STATUSES = ['Running low', 'In-Stock', 'Excess', 'Not Needed Anymore']
 
-# --- Authentication Routes ---
+# --- Helper function for audit logging ---
+def log_action(user_id, action, details="", household_id=None):
+    conn = get_db_connection()
+    if not conn: return
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO audit_log (user_id, household_id, action, details) VALUES (%s, %s, %s, %s)",
+                   (user_id, household_id, action, details))
+    conn.commit()
+    conn.close()
 
+# --- Decorators ---
+def household_member_required(f):
+    @wraps(f)
+    def decorated_function(household_id, *args, **kwargs):
+        conn = get_db_connection()
+        if not conn: return "Error", 500
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id FROM user_households WHERE user_id = %s AND household_id = %s AND status = 'approved'", (current_user.id, household_id))
+        membership = cursor.fetchone()
+        conn.close()
+        if not membership:
+            flash("You are not a member of this household.", "danger")
+            return redirect(url_for('households'))
+        return f(household_id, *args, **kwargs)
+    return decorated_function
+
+def household_admin_required(f):
+    @wraps(f)
+    def decorated_function(household_id, *args, **kwargs):
+        conn = get_db_connection()
+        if not conn: return "Error", 500
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT admin_id FROM households WHERE id = %s", (household_id,))
+        household = cursor.fetchone()
+        conn.close()
+        if not household or household['admin_id'] != current_user.id:
+            flash("You are not the admin of this household.", "danger")
+            return redirect(url_for('households'))
+        return f(household_id, *args, **kwargs)
+    return decorated_function
+
+# --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
         conn = get_db_connection()
         if not conn:
             flash('Database connection failed.', 'danger')
             return render_template('login.html')
-
         cursor = conn.cursor(dictionary=True)
-        sql = """
-            SELECT u.*, r.name as role, h.name as household_name 
-            FROM users u 
-            JOIN roles r ON u.role_id = r.id 
-            LEFT JOIN households h ON u.household_id = h.id
-            WHERE u.username = %s
-        """
-        cursor.execute(sql, (username,))
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         user_data = cursor.fetchone()
         conn.close()
-
         if user_data and check_password_hash(user_data['password'], password):
-            user = User(id=user_data['id'], username=user_data['username'], role=user_data['role'], household_id=user_data['household_id'], household_name=user_data['household_name'])
+            user = User(id=user_data['id'], username=user_data['username'], is_admin=user_data.get('is_superadmin', False))
             login_user(user)
+            log_action(user.id, "User Login")
             return redirect(url_for('index'))
         else:
             flash('Invalid username or password.', 'danger')
-
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -121,176 +129,190 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        full_name = request.form['full_name']
+        email = request.form['email']
+        mobile = request.form['mobile_number']
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-
         conn = get_db_connection()
         if not conn:
             flash('Database connection failed.', 'danger')
             return render_template('register.html')
-        
-        cursor = conn.cursor(dictionary=True)
-        
-        # Determine role
-        role_name = 'admin' if username in ADMIN_USERS else 'user'
-        cursor.execute("SELECT id FROM roles WHERE name = %s", (role_name,))
-        role = cursor.fetchone()
-        if not role:
-            conn.close()
-            flash('Error: User roles not set up correctly in the database.', 'danger')
-            return render_template('register.html')
-        role_id = role['id']
-
         try:
-            cursor.execute("INSERT INTO users (username, password, role_id) VALUES (%s, %s, %s)", (username, hashed_password, role_id))
+            cursor = conn.cursor()
+            sql = "INSERT INTO users (username, password, full_name, email, mobile_number) VALUES (%s, %s, %s, %s, %s)"
+            cursor.execute(sql, (username, hashed_password, full_name, email, mobile))
             conn.commit()
+            log_action(cursor.lastrowid, "User Registered")
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
-        except mysql.connector.IntegrityError:
-            flash('Username already exists.', 'danger')
+        except mysql.connector.IntegrityError as err:
+            if 'username' in str(err): flash('Username already exists.', 'danger')
+            elif 'email' in str(err): flash('Email address is already registered.', 'danger')
+            else: flash('An unexpected error occurred.', 'danger')
         finally:
             conn.close()
-            
     return render_template('register.html')
 
 @app.route('/logout')
 @login_required
 def logout():
+    log_action(current_user.id, "User Logout")
     logout_user()
     return redirect(url_for('login'))
 
-# --- Admin Routes ---
-
-@app.route('/admin')
+# --- Household Management Routes ---
+@app.route('/households')
 @login_required
-@admin_required
-def admin_dashboard():
+def households():
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
+    if not conn: return "Error connecting to database", 500
     cursor = conn.cursor(dictionary=True)
-
-    # Get stats for admin dashboard
-    cursor.execute("SELECT COUNT(*) as count FROM households")
-    total_households = cursor.fetchone()['count']
-    
-    cursor.execute("SELECT COUNT(*) as count FROM users")
-    total_users = cursor.fetchone()['count']
-    
-    cursor.execute("SELECT COUNT(*) as count FROM users WHERE household_id IS NULL")
-    unassigned_users = cursor.fetchone()['count']
-
+    search_term = request.args.get('search', '')
+    cursor.execute("SELECT h.*, u.username as admin_name FROM households h JOIN user_households uh ON h.id = uh.household_id JOIN users u ON h.admin_id = u.id WHERE uh.user_id = %s AND uh.status = 'approved'", (current_user.id,))
+    my_households = cursor.fetchall()
+    other_households_query = "SELECT h.*, u.username as admin_name, uh.status as request_status FROM households h JOIN users u ON h.admin_id = u.id LEFT JOIN user_households uh ON h.id = uh.household_id AND uh.user_id = %s WHERE h.id NOT IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')"
+    params = [current_user.id, current_user.id]
+    if search_term:
+        other_households_query += " AND h.name LIKE %s"
+        params.append(f"%{search_term}%")
+    cursor.execute(other_households_query, tuple(params))
+    other_households = cursor.fetchall()
     conn.close()
+    return render_template('households.html', my_households=my_households, other_households=other_households, search_term=search_term)
 
-    stats = {
-        'total_households': total_households,
-        'total_users': total_users,
-        'unassigned_users': unassigned_users
-    }
-
-    return render_template('admin_dashboard.html', stats=stats)
-
-@app.route('/admin/households', methods=['GET', 'POST'])
+@app.route('/create_household', methods=['POST'])
 @login_required
-@admin_required
-def manage_households():
+def create_household():
+    name = request.form['name']
+    address = request.form['address']
+    location = request.form['location']
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    if request.method == 'POST':
-        household_name = request.form['household_name']
-        if household_name:
-            try:
-                cursor.execute("INSERT INTO households (name) VALUES (%s)", (household_name,))
-                conn.commit()
-                flash(f"Household '{household_name}' created successfully.", 'success')
-            except mysql.connector.IntegrityError:
-                flash(f"Household '{household_name}' already exists.", 'danger')
-        return redirect(url_for('manage_households'))
-
-    cursor.execute("SELECT * FROM households ORDER BY name ASC")
-    households = cursor.fetchall()
+    if not conn: return "Error connecting to database", 500
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO households (name, address, location, admin_id) VALUES (%s, %s, %s, %s)", (name, address, location, current_user.id))
+    household_id = cursor.lastrowid
+    cursor.execute("INSERT INTO user_households (user_id, household_id, status) VALUES (%s, %s, 'approved')", (current_user.id, household_id))
+    conn.commit()
+    log_action(current_user.id, "Household Created", f"Name: {name}", household_id)
     conn.close()
-    return render_template('manage_households.html', households=households)
+    flash(f"Household '{name}' created successfully!", 'success')
+    return redirect(url_for('households'))
 
-@app.route('/admin/users')
+@app.route('/request_join/<int:household_id>', methods=['POST'])
 @login_required
-@admin_required
-def manage_users():
+def request_join_household(household_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    sql = """
-        SELECT u.id, u.username, r.name as role, h.name as household_name
-        FROM users u
-        JOIN roles r ON u.role_id = r.id
-        LEFT JOIN households h ON u.household_id = h.id
-        ORDER BY u.username ASC
-    """
-    cursor.execute(sql)
-    users = cursor.fetchall()
-    conn.close()
-    return render_template('manage_users.html', users=users)
-
-@app.route('/admin/assign_household/<int:user_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def assign_household(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    if request.method == 'POST':
-        household_id = request.form.get('household_id')
-        # If "None" is selected, set household_id to NULL
-        if household_id == "None":
-            household_id = None
-        
-        cursor.execute("UPDATE users SET household_id = %s WHERE id = %s", (household_id, user_id))
+    if not conn: return "Error", 500
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO user_households (user_id, household_id, status) VALUES (%s, %s, 'pending')", (current_user.id, household_id))
         conn.commit()
+        log_action(current_user.id, "Join Request Sent", f"Requested to join household ID {household_id}", household_id)
+        flash("Your request to join the household has been sent.", 'success')
+    except mysql.connector.IntegrityError:
+        flash("You have already sent a request to join this household.", 'warning')
+    finally:
         conn.close()
-        flash('User household updated.', 'success')
-        return redirect(url_for('manage_users'))
+    return redirect(url_for('households'))
 
-    cursor.execute("SELECT id, username, household_id FROM users WHERE id = %s", (user_id,))
-    user = cursor.fetchone()
-    
-    cursor.execute("SELECT id, name FROM households ORDER BY name ASC")
-    households = cursor.fetchall()
-    
+@app.route('/manage_household/<int:household_id>', methods=['GET', 'POST'])
+@login_required
+@household_admin_required
+def manage_household(household_id):
+    conn = get_db_connection()
+    if not conn: return "Error", 500
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        name = request.form['name']
+        address = request.form['address']
+        location = request.form['location']
+        cursor.execute("UPDATE households SET name = %s, address = %s, location = %s WHERE id = %s",
+                       (name, address, location, household_id))
+        conn.commit()
+        log_action(current_user.id, "Household Details Updated", f"Updated name to {name}", household_id)
+        flash("Household details updated successfully.", 'success')
+        return redirect(url_for('manage_household', household_id=household_id))
+
+    cursor.execute("SELECT * FROM households WHERE id = %s", (household_id,))
+    household = cursor.fetchone()
+    cursor.execute("SELECT u.id, u.username, u.full_name, u.email FROM users u JOIN user_households uh ON u.id = uh.user_id WHERE uh.household_id = %s AND uh.status = 'approved'", (household_id,))
+    members = cursor.fetchall()
+    cursor.execute("SELECT u.id, u.username, u.full_name, u.email FROM users u JOIN user_households uh ON u.id = uh.user_id WHERE uh.household_id = %s AND uh.status = 'pending'", (household_id,))
+    pending_requests = cursor.fetchall()
     conn.close()
-    
-    if not user:
-        return "User not found", 404
-        
-    return render_template('assign_household.html', user=user, households=households)
+    return render_template('manage_household.html', household=household, members=members, pending_requests=pending_requests)
 
+@app.route('/manage_request/<int:household_id>/<int:user_id>/<action>')
+@login_required
+@household_admin_required
+def manage_request(household_id, user_id, action):
+    conn = get_db_connection()
+    if not conn: return "Error", 500
+    cursor = conn.cursor()
+    if action == 'approve':
+        cursor.execute("UPDATE user_households SET status = 'approved' WHERE user_id = %s AND household_id = %s", (user_id, household_id))
+        log_action(current_user.id, "Approved Join Request", f"User ID {user_id} approved", household_id)
+        flash("User has been added to the household.", 'success')
+    elif action == 'deny':
+        cursor.execute("DELETE FROM user_households WHERE user_id = %s AND household_id = %s", (user_id, household_id))
+        log_action(current_user.id, "Denied Join Request", f"User ID {user_id} denied", household_id)
+        flash("Request has been denied.", 'success')
+    conn.commit()
+    conn.close()
+    return redirect(url_for('manage_household', household_id=household_id))
 
-# --- Main Application Routes (Protected) ---
+@app.route('/remove_member/<int:household_id>/<int:user_id>')
+@login_required
+@household_admin_required
+def remove_member(household_id, user_id):
+    if user_id == current_user.id:
+        flash("Admins cannot remove themselves from the household.", "danger")
+        return redirect(url_for('manage_household', household_id=household_id))
 
+    conn = get_db_connection()
+    if not conn: return "Error", 500
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_households WHERE user_id = %s AND household_id = %s", (user_id, household_id))
+    conn.commit()
+    conn.close()
+    log_action(current_user.id, "Removed Member", f"Removed user ID {user_id}", household_id)
+    flash("Member has been removed from the household.", "success")
+    return redirect(url_for('manage_household', household_id=household_id))
+
+# --- Main Application Routes ---
 @app.route('/')
 @login_required
 def index():
-    if not current_user.household_id:
-        if current_user.is_admin():
-             flash('You are an admin. Please create a household and assign yourself to it to view groceries.', 'info')
-        else:
-            flash('You are not yet assigned to a household. Please contact an admin.', 'warning')
-        return render_template('index.html', items=[], grouped_items={})
-
-    search_query = request.args.get('search', '')
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
+    if not conn: return "Error", 500
     cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved'", (current_user.id,))
+    user_households = cursor.fetchall()
+    conn.close()
+    if not user_households:
+        flash("Please create or join a household to start tracking groceries.", 'info')
+        return redirect(url_for('households'))
+    return redirect(url_for('view_household', household_id=user_households[0]['household_id']))
 
-    sql = "SELECT g.*, u_created.username as created_by_user, u_modified.username as modified_by_user FROM groceries g JOIN users u_created ON g.created_by = u_created.id LEFT JOIN users u_modified ON g.modified_by = u_modified.id WHERE g.household_id = %s"
-    params = [current_user.household_id]
-
+@app.route('/household/<int:household_id>')
+@login_required
+@household_member_required
+def view_household(household_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id, name FROM households WHERE id IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')", (current_user.id,))
+    user_households = cursor.fetchall()
+    search_query = request.args.get('search', '')
+    sql = "SELECT g.*, u_created.username as created_by_user, u_modified.username as modified_by_user FROM groceries g LEFT JOIN users u_created ON g.created_by = u_created.id LEFT JOIN users u_modified ON g.modified_by = u_modified.id WHERE g.household_id = %s"
+    params = [household_id]
     if search_query:
         sql += " AND g.name LIKE %s"
         params.append(f"%{search_query}%")
-    
     sql += " ORDER BY g.category ASC, g.name ASC"
     cursor.execute(sql, tuple(params))
     items = cursor.fetchall()
     conn.close()
-
     grouped_items = {}
     for item in items:
         if item.get('expiry_date'):
@@ -298,21 +320,16 @@ def index():
             item['days_to_expiry'] = days if days >= 0 else 'Expired'
         else:
             item['days_to_expiry'] = 'N/A'
-        
         category = item['category']
         if category not in grouped_items:
             grouped_items[category] = []
         grouped_items[category].append(item)
+    return render_template('index.html', items=items, grouped_items=grouped_items, search_query=search_query, household_id=household_id, user_households=user_households)
 
-    return render_template('index.html', items=items, grouped_items=grouped_items, search_query=search_query)
-
-@app.route('/add', methods=['GET', 'POST'])
+@app.route('/household/<int:household_id>/add', methods=['GET', 'POST'])
 @login_required
-def add_item():
-    if not current_user.household_id:
-        flash('You must be in a household to add items.', 'danger')
-        return redirect(url_for('index'))
-
+@household_member_required
+def add_item(household_id):
     if request.method == 'POST':
         name = request.form['name']
         category = request.form['category']
@@ -323,35 +340,24 @@ def add_item():
         is_essential = 'is_essential' in request.form
         purchase_date = request.form['purchase_date'] or None
         expiry_date = request.form['expiry_date'] or None
-
         conn = get_db_connection()
-        if not conn: return "Error: Could not connect to the database.", 500
         cursor = conn.cursor()
-        sql = """
-            INSERT INTO groceries (household_id, name, category, type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, created_by, modified_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        val = (current_user.household_id, name, category, item_type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, current_user.id, current_user.id)
+        sql = "INSERT INTO groceries (household_id, name, category, type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        val = (household_id, name, category, item_type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, current_user.id)
         cursor.execute(sql, val)
         conn.commit()
+        log_action(current_user.id, "Item Added", f"Item: {name}", household_id)
         conn.close()
-        return redirect(url_for('index'))
+        return redirect(url_for('view_household', household_id=household_id))
+    return render_template('add_item.html', categories=CATEGORIES, units=UNITS, statuses=STATUSES, household_id=household_id)
 
-    return render_template('add_item.html', categories=CATEGORIES, units=UNITS, statuses=STATUSES)
-
-@app.route('/edit/<int:id>', methods=['GET', 'POST'])
+@app.route('/household/<int:household_id>/edit/<int:item_id>', methods=['GET', 'POST'])
 @login_required
-def edit_item(id):
+@household_member_required
+def edit_item(household_id, item_id):
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
     cursor = conn.cursor(dictionary=True)
-
     if request.method == 'POST':
-        cursor.execute("SELECT id FROM groceries WHERE id = %s AND household_id = %s", (id, current_user.household_id))
-        if not cursor.fetchone():
-            conn.close()
-            return "Unauthorized", 403
-
         name = request.form['name']
         category = request.form['category']
         item_type = request.form['type']
@@ -361,154 +367,103 @@ def edit_item(id):
         is_essential = 'is_essential' in request.form
         purchase_date = request.form['purchase_date'] or None
         expiry_date = request.form['expiry_date'] or None
-
-        sql = """
-            UPDATE groceries SET name=%s, category=%s, type=%s, quantity=%s, quantity_unit=%s, status=%s, is_essential=%s, purchase_date=%s, expiry_date=%s, modified_by=%s
-            WHERE id = %s AND household_id = %s
-        """
-        val = (name, category, item_type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, current_user.id, id, current_user.household_id)
+        sql = "UPDATE groceries SET name=%s, category=%s, type=%s, quantity=%s, quantity_unit=%s, status=%s, is_essential=%s, purchase_date=%s, expiry_date=%s, modified_by=%s WHERE id = %s AND household_id = %s"
+        val = (name, category, item_type, quantity, quantity_unit, status, is_essential, purchase_date, expiry_date, current_user.id, item_id, household_id)
         cursor.execute(sql, val)
         conn.commit()
+        log_action(current_user.id, "Item Edited", f"Item ID: {item_id}", household_id)
         conn.close()
-        return redirect(url_for('index'))
-
-    cursor.execute("SELECT * FROM groceries WHERE id = %s AND household_id = %s", (id, current_user.household_id))
+        return redirect(url_for('view_household', household_id=household_id))
+    cursor.execute("SELECT * FROM groceries WHERE id = %s AND household_id = %s", (item_id, household_id))
     item = cursor.fetchone()
     conn.close()
     if not item:
-        return "Item not found or you don't have permission to edit it.", 404
-        
-    return render_template('edit_item.html', item=item, categories=CATEGORIES, units=UNITS, statuses=STATUSES)
+        return "Item not found", 404
+    return render_template('edit_item.html', item=item, categories=CATEGORIES, units=UNITS, statuses=STATUSES, household_id=household_id)
 
-@app.route('/delete/<int:id>')
+@app.route('/household/<int:household_id>/delete/<int:item_id>')
 @login_required
-def delete_item(id):
+@household_member_required
+def delete_item(household_id, item_id):
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM groceries WHERE id = %s AND household_id = %s", (id, current_user.household_id))
+    cursor.execute("DELETE FROM groceries WHERE id = %s AND household_id = %s", (item_id, household_id))
     conn.commit()
+    log_action(current_user.id, "Item Deleted", f"Item ID: {item_id}", household_id)
     conn.close()
-    return redirect(url_for('index'))
+    return redirect(url_for('view_household', household_id=household_id))
 
-@app.route('/dashboard')
+@app.route('/household/<int:household_id>/dashboard')
 @login_required
-def dashboard():
-    if not current_user.household_id:
-        flash('You must be in a household to view the dashboard.', 'danger')
-        return redirect(url_for('index'))
-        
+@household_member_required
+def dashboard(household_id):
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
     cursor = conn.cursor(dictionary=True)
-    household_id = current_user.household_id
-    
     cursor.execute("SELECT status, COUNT(*) as count FROM groceries WHERE household_id = %s GROUP BY status", (household_id,))
     items_by_status = cursor.fetchall()
-    
     cursor.execute("SELECT category, COUNT(*) as count FROM groceries WHERE household_id = %s GROUP BY category ORDER BY count DESC", (household_id,))
     items_by_category = cursor.fetchall()
-    
     today = date.today()
     next_week = today + timedelta(days=7)
     cursor.execute("SELECT name, expiry_date FROM groceries WHERE household_id = %s AND expiry_date BETWEEN %s AND %s ORDER BY expiry_date ASC", (household_id, today, next_week))
     upcoming_expiries = cursor.fetchall()
-    
     cursor.execute("SELECT type, COUNT(*) as count FROM groceries WHERE household_id = %s GROUP BY type", (household_id,))
     item_types = cursor.fetchall()
-
     cursor.execute("SELECT COUNT(*) as total_items FROM groceries WHERE household_id = %s", (household_id,))
     total_items = cursor.fetchone()['total_items']
-    
     cursor.execute("SELECT COUNT(*) as running_low FROM groceries WHERE household_id = %s AND status = 'Running low'", (household_id,))
     running_low_count = cursor.fetchone()['running_low']
-
     cursor.execute("SELECT COUNT(*) as expired_count FROM groceries WHERE household_id = %s AND expiry_date < %s", (household_id, today))
     expired_count = cursor.fetchone()['expired_count']
-
     conn.close()
-
     status_data = {'labels': [s['status'] for s in items_by_status], 'data': [s['count'] for s in items_by_status]}
     category_data = {'labels': [c['category'] for c in items_by_category], 'data': [c['count'] for c in items_by_category]}
     type_data = {'labels': [t['type'] for t in item_types], 'data': [t['count'] for t in item_types]}
+    summary_cards = {'total_items': total_items, 'running_low': running_low_count, 'expired_count': expired_count}
+    return render_template('dashboard.html', status_data=status_data, category_data=category_data, type_data=type_data, upcoming_expiries=upcoming_expiries, summary_cards=summary_cards, household_id=household_id)
 
-    summary_cards = {
-        'total_items': total_items,
-        'running_low': running_low_count,
-        'expired_count': expired_count
-    }
-
-    return render_template('dashboard.html', 
-                           status_data=status_data, 
-                           category_data=category_data,
-                           type_data=type_data,
-                           upcoming_expiries=upcoming_expiries,
-                           summary_cards=summary_cards)
-
-@app.route('/shopping_list')
+@app.route('/household/<int:household_id>/shopping_list')
 @login_required
-def shopping_list():
-    if not current_user.household_id:
-        flash('You must be in a household to view the shopping list.', 'danger')
-        return redirect(url_for('index'))
-
+@household_member_required
+def shopping_list(household_id):
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
     cursor = conn.cursor(dictionary=True)
-    
-    household_id = current_user.household_id
     today = date.today()
-    
-    essential_query = "SELECT * FROM groceries WHERE (status = 'Running low' OR expiry_date < %s) AND is_essential = TRUE AND household_id = %s ORDER BY category ASC, name ASC"
-    cursor.execute(essential_query, (today, household_id))
+    essential_query = "SELECT * FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = TRUE ORDER BY category ASC, name ASC"
+    cursor.execute(essential_query, (household_id, today))
     essential_items_flat = cursor.fetchall()
-    
-    optional_query = "SELECT * FROM groceries WHERE (status = 'Running low' OR expiry_date < %s) AND is_essential = FALSE AND household_id = %s ORDER BY category ASC, name ASC"
-    cursor.execute(optional_query, (today, household_id))
+    optional_query = "SELECT * FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = FALSE ORDER BY category ASC, name ASC"
+    cursor.execute(optional_query, (household_id, today))
     optional_items_flat = cursor.fetchall()
-    
     conn.close()
-
     for item in essential_items_flat + optional_items_flat:
         is_expired = item.get('expiry_date') and item['expiry_date'] < today
         item['reason'] = 'Expired' if is_expired else 'Running low'
-
     grouped_essential = {c: [i for i in essential_items_flat if i['category'] == c] for c in {i['category'] for i in essential_items_flat}}
     grouped_optional = {c: [i for i in optional_items_flat if i['category'] == c] for c in {i['category'] for i in optional_items_flat}}
-
     return render_template('shopping_list.html', 
                            essential_items=essential_items_flat, 
                            optional_items=optional_items_flat,
                            grouped_essential_items=grouped_essential,
-                           grouped_optional_items=grouped_optional)
+                           grouped_optional_items=grouped_optional,
+                           household_id=household_id)
 
-@app.route('/export_shopping_list')
+@app.route('/household/<int:household_id>/export_shopping_list')
 @login_required
-def export_shopping_list():
-    """Generates a printable shopping list for items that are running low or expired."""
-    if not current_user.household_id:
-        flash('You must be in a household to export a shopping list.', 'danger')
-        return redirect(url_for('index'))
-
+@household_member_required
+def export_shopping_list(household_id):
     conn = get_db_connection()
-    if not conn: return "Error: Could not connect to the database.", 500
     cursor = conn.cursor(dictionary=True)
-    
-    household_id = current_user.household_id
     today = date.today()
-
-    essential_query = "SELECT name FROM groceries WHERE (status = 'Running low' OR expiry_date < %s) AND is_essential = TRUE AND household_id = %s ORDER BY name ASC"
-    cursor.execute(essential_query, (today, household_id))
+    essential_query = "SELECT name FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = TRUE ORDER BY name ASC"
+    cursor.execute(essential_query, (household_id, today))
     essential_items = cursor.fetchall()
-    
-    optional_query = "SELECT name FROM groceries WHERE (status = 'Running low' OR expiry_date < %s) AND is_essential = FALSE AND household_id = %s ORDER BY name ASC"
-    cursor.execute(optional_query, (today, household_id))
+    optional_query = "SELECT name FROM groceries WHERE household_id = %s AND (status = 'Running low' OR expiry_date < %s) AND is_essential = FALSE ORDER BY name ASC"
+    cursor.execute(optional_query, (household_id, today))
     optional_items = cursor.fetchall()
-    
     conn.close()
     export_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
-
-    return render_template('export_checklist.html', essential_items=essential_items, optional_items=optional_items, export_time=export_time)
+    return render_template('export_checklist.html', essential_items=essential_items, optional_items=optional_items, export_time=export_time, household_id=household_id)
 
 # --- Main Execution ---
 if __name__ == '__main__':

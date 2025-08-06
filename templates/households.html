@@ -1,0 +1,101 @@
+<!-- templates/households.html -->
+{% extends "layout.html" %}
+{% block title %}Manage Households{% endblock %}
+{% block content %}
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Households</h1>
+        <a href="{{ url_for('logout') }}" class="text-sm text-red-600 dark:text-red-400 hover:underline">Logout</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 bg-{{ {'danger': 'red', 'success': 'green', 'info': 'blue', 'warning': 'yellow'}[category] }}-100 border-l-4 border-{{ {'danger': 'red', 'success': 'green', 'info': 'blue', 'warning': 'yellow'}[category] }}-500 text-{{ {'danger': 'red', 'success': 'green', 'info': 'blue', 'warning': 'yellow'}[category] }}-700 p-4 rounded-md" role="alert">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- My Households & Create New -->
+        <div class="space-y-6">
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">My Households</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-4">
+                    {% if my_households %}
+                        {% for hh in my_households %}
+                        <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <p class="font-bold">{{ hh.name }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Admin: {{ hh.admin_name }}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                {% if hh.admin_id == current_user.id %}
+                                <a href="{{ url_for('manage_household', household_id=hh.id) }}" class="bg-yellow-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-yellow-600">Manage</a>
+                                {% endif %}
+                                <a href="{{ url_for('view_household', household_id=hh.id) }}" class="bg-green-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-green-600">Enter</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-gray-500 dark:text-gray-400">You are not a member of any household yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">Create a New Household</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <form action="{{ url_for('create_household') }}" method="POST" class="space-y-4">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Household Name</label>
+                            <input type="text" name="name" id="name" required class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="address" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address (Optional)</label>
+                            <textarea name="address" id="address" rows="2" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        </div>
+                         <div>
+                            <label for="location" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Location (e.g., City, Country)</label>
+                            <input type="text" name="location" id="location" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">Create Household</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Existing Household -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">Join an Existing Household</h2>
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-4">
+                <form action="{{ url_for('households') }}" method="GET" class="flex space-x-2">
+                    <input type="search" name="search" value="{{ search_term or '' }}" placeholder="Search by household name..." class="flex-grow px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <button type="submit" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700">Search</button>
+                </form>
+                 {% if other_households %}
+                    {% for hh in other_households %}
+                    <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div>
+                            <p class="font-bold">{{ hh.name }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Admin: {{ hh.admin_name }}</p>
+                        </div>
+                        {% if hh.request_status == 'pending' %}
+                            <span class="text-sm font-semibold text-yellow-600 dark:text-yellow-400">Pending</span>
+                        {% else %}
+                        <form action="{{ url_for('request_join_household', household_id=hh.id) }}" method="POST">
+                            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-blue-600">Request to Join</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center text-gray-500 dark:text-gray-400">No other households found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+<!-- templates/manage_household.html -->
+{% extends "layout.html" %}
+{% block title %}Manage {{ household.name }}{% endblock %}
+{% block content %}
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Manage Household</h1>
+            <p class="text-xl text-gray-600 dark:text-gray-400">{{ household.name }}</p>
+        </div>
+        <a href="{{ url_for('households') }}" class="w-full sm:w-auto text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Households
+        </a>
+    </div>
+
+     {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 bg-{{ {'danger': 'red', 'success': 'green'}[category] }}-100 border-l-4 border-{{ {'danger': 'red', 'success': 'green'}[category] }}-500 text-{{ {'danger': 'red', 'success': 'green'}[category] }}-700 p-4 rounded-md" role="alert">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Edit Details -->
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">Household Details</h2>
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                <form action="{{ url_for('manage_household', household_id=household.id) }}" method="POST" class="space-y-4">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Household Name</label>
+                        <input type="text" name="name" id="name" value="{{ household.name }}" required class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="address" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Address</label>
+                        <textarea name="address" id="address" rows="2" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ household.address or '' }}</textarea>
+                    </div>
+                     <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+                        <input type="text" name="location" id="location" value="{{ household.location or '' }}" class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300">Save Changes</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="space-y-6">
+            <!-- Current Members -->
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">Current Members</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-3">
+                    {% for member in members %}
+                    <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div>
+                            <p class="font-semibold">{{ member.full_name }} (@{{ member.username }})</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.email }}</p>
+                        </div>
+                        {% if member.id != current_user.id %}
+                        <a href="{{ url_for('remove_member', household_id=household.id, user_id=member.id) }}" onclick="return confirm('Are you sure you want to remove this member?');" class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-semibold">Remove</a>
+                        {% else %}
+                        <span class="text-sm font-bold text-green-600 dark:text-green-400">Admin</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Pending Requests -->
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">Pending Join Requests</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-3">
+                    {% if pending_requests %}
+                        {% for req in pending_requests %}
+                        <div class="flex justify-between items-center p-3 bg-yellow-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <p class="font-semibold">{{ req.full_name }} (@{{ req.username }})</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ req.email }}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('manage_request', household_id=household.id, user_id=req.id, action='approve') }}" class="bg-green-500 text-white px-3 py-1 text-sm rounded-md hover:bg-green-600">Approve</a>
+                                <a href="{{ url_for('manage_request', household_id=household.id, user_id=req.id, action='deny') }}" class="bg-red-500 text-white px-3 py-1 text-sm rounded-md hover:bg-red-600">Deny</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-gray-500 dark:text-gray-400">No pending requests.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

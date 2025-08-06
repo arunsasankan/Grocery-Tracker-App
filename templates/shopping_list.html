@@ -6,10 +6,10 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Shopping List</h1>
         <div class="flex items-center flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <a href="{{ url_for('index') }}" class="w-full sm:w-auto text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+            <a href="{{ url_for('view_household', household_id=household_id) }}" class="w-full sm:w-auto text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
                 <i class="fas fa-arrow-left mr-2"></i>Back to Inventory
             </a>
-            <a href="{{ url_for('export_shopping_list') }}" target="_blank" class="w-full sm:w-auto text-center bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-800 transition duration-300">
+            <a href="{{ url_for('export_shopping_list', household_id=household_id) }}" target="_blank" class="w-full sm:w-auto text-center bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-800 transition duration-300">
                 <i class="fas fa-print mr-2"></i>Export as Checklist
             </a>
         </div>
@@ -140,6 +140,15 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+             // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            });
+
             // Accordion functionality
             const accordionHeaders = document.querySelectorAll('.accordion-header');
             accordionHeaders.forEach(header => {
