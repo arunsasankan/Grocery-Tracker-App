@@ -16,8 +16,8 @@ app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
 # --- Database Configuration ---
 DB_CONFIG = {
     'host': 'localhost',
-    'user': 'root',
-    'password': 'Sia@100652',
+    'user': '',
+    'password': '',
     'database': 'grocery_db'
 }
 
