@@ -16,8 +16,8 @@ app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
 # --- Database Configuration ---
 DB_CONFIG = {
     'host': 'localhost',
-    'user': '',
-    'password': '',
+    'user': 'your_mysql_username',
+    'password': 'your_mysql_password',
     'database': 'grocery_db'
 }
 
@@ -110,7 +110,6 @@ def household_admin_required(f):
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # ... (code is unchanged)
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -133,7 +132,6 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # ... (code is unchanged)
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -164,7 +162,6 @@ def register():
 @app.route('/logout')
 @login_required
 def logout():
-    # ... (code is unchanged)
     log_action(current_user.id, "User Logout")
     logout_user()
     return redirect(url_for('login'))
@@ -173,7 +170,6 @@ def logout():
 @app.route('/households')
 @login_required
 def households():
-    # ... (code is unchanged)
     conn = get_db_connection()
     if not conn: return "Error connecting to database", 500
     cursor = conn.cursor(dictionary=True)
@@ -193,11 +189,11 @@ def households():
 @app.route('/create_household', methods=['POST'])
 @login_required
 def create_household():
-    # ... (code is unchanged)
     name = request.form['name']
     address = request.form['address']
     location = request.form['location']
     code = generate_household_code()
+
     conn = get_db_connection()
     if not conn: return "Error connecting to database", 500
     cursor = conn.cursor()
@@ -215,7 +211,6 @@ def create_household():
 @app.route('/request_join/<int:household_id>', methods=['POST'])
 @login_required
 def request_join_household(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     if not conn: return "Error", 500
     cursor = conn.cursor()
@@ -234,10 +229,10 @@ def request_join_household(household_id):
 @login_required
 @household_admin_required
 def manage_household(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     if not conn: return "Error", 500
     cursor = conn.cursor(dictionary=True)
+
     if request.method == 'POST':
         name = request.form['name']
         address = request.form['address']
@@ -248,6 +243,7 @@ def manage_household(household_id):
         log_action(current_user.id, "Household Details Updated", f"Updated name to {name}", household_id)
         flash("Household details updated successfully.", 'success')
         return redirect(url_for('manage_household', household_id=household_id))
+
     cursor.execute("SELECT * FROM households WHERE id = %s", (household_id,))
     household = cursor.fetchone()
     cursor.execute("SELECT u.id, u.username, u.full_name, u.email FROM users u JOIN user_households uh ON u.id = uh.user_id WHERE uh.household_id = %s AND uh.status = 'approved'", (household_id,))
@@ -261,7 +257,6 @@ def manage_household(household_id):
 @login_required
 @household_admin_required
 def manage_request(household_id, user_id, action):
-    # ... (code is unchanged)
     conn = get_db_connection()
     if not conn: return "Error", 500
     cursor = conn.cursor()
@@ -281,10 +276,10 @@ def manage_request(household_id, user_id, action):
 @login_required
 @household_admin_required
 def remove_member(household_id, user_id):
-    # ... (code is unchanged)
     if user_id == current_user.id:
         flash("Admins cannot remove themselves from the household.", "danger")
         return redirect(url_for('manage_household', household_id=household_id))
+
     conn = get_db_connection()
     if not conn: return "Error", 500
     cursor = conn.cursor()
@@ -299,7 +294,6 @@ def remove_member(household_id, user_id):
 @login_required
 @household_admin_required
 def delete_household(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     if not conn: return "Error", 500
     cursor = conn.cursor(dictionary=True)
@@ -316,7 +310,6 @@ def delete_household(household_id):
 @app.route('/')
 @login_required
 def index():
-    # ... (code is unchanged)
     conn = get_db_connection()
     if not conn: return "Error", 500
     cursor = conn.cursor(dictionary=True)
@@ -332,7 +325,6 @@ def index():
 @login_required
 @household_member_required
 def view_household(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id, name, household_code FROM households WHERE id IN (SELECT household_id FROM user_households WHERE user_id = %s AND status = 'approved')", (current_user.id,))
@@ -364,7 +356,6 @@ def view_household(household_id):
 @login_required
 @household_member_required
 def add_item(household_id):
-    # ... (code is unchanged)
     if request.method == 'POST':
         name = request.form['name']
         category = request.form['category']
@@ -389,18 +380,16 @@ def add_item(household_id):
 @app.route('/household/<int:household_id>/update_item/<int:item_id>', methods=['POST'])
 @login_required
 @household_member_required
-def update_item(household_id, item_id):
+def update_item_inline(household_id, item_id):
     """Handles quick, inline updates from the main inventory table."""
     data = request.get_json()
     field = data.get('field')
     value = data.get('value')
 
-    # Basic validation
     allowed_fields = ['quantity', 'quantity_unit', 'status', 'is_essential']
     if not field or field not in allowed_fields:
         return jsonify({'success': False, 'message': 'Invalid field.'}), 400
 
-    # Type conversion for boolean
     if field == 'is_essential':
         value = bool(value)
 
@@ -410,8 +399,6 @@ def update_item(household_id, item_id):
     
     cursor = conn.cursor()
     try:
-        # Note: Using f-string for column name is generally unsafe, but here we've
-        # validated `field` against a whitelist, making it safe.
         sql = f"UPDATE groceries SET {field} = %s, modified_by = %s WHERE id = %s AND household_id = %s"
         cursor.execute(sql, (value, current_user.id, item_id, household_id))
         conn.commit()
@@ -428,7 +415,6 @@ def update_item(household_id, item_id):
 @login_required
 @household_member_required
 def edit_item(household_id, item_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     if request.method == 'POST':
@@ -459,7 +445,6 @@ def edit_item(household_id, item_id):
 @login_required
 @household_member_required
 def delete_item(household_id, item_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM groceries WHERE id = %s AND household_id = %s", (item_id, household_id))
@@ -472,7 +457,6 @@ def delete_item(household_id, item_id):
 @login_required
 @household_member_required
 def dashboard(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT status, COUNT(*) as count FROM groceries WHERE household_id = %s GROUP BY status", (household_id,))
@@ -502,7 +486,6 @@ def dashboard(household_id):
 @login_required
 @household_member_required
 def shopping_list(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     today = date.today()
@@ -529,7 +512,6 @@ def shopping_list(household_id):
 @login_required
 @household_member_required
 def export_shopping_list(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     today = date.today()
@@ -547,15 +529,17 @@ def export_shopping_list(household_id):
 @login_required
 @household_member_required
 def pantry(household_id):
-    # ... (code is unchanged)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
     if request.method == 'POST':
         items_to_add = request.form.getlist('pantry_item_id')
+        
         for item_id in items_to_add:
             quantity = float(request.form.get(f'quantity_{item_id}', 1.0))
             quantity_unit = request.form.get(f'quantity_unit_{item_id}', 'Count')
             status = request.form.get(f'status_{item_id}', 'In-Stock')
+
             cursor.execute("SELECT name, type, category FROM pantry_items WHERE id = %s", (item_id,))
             pantry_item = cursor.fetchone()
             if pantry_item:
@@ -564,12 +548,14 @@ def pantry(household_id):
                 try:
                     cursor.execute(sql, val)
                 except mysql.connector.IntegrityError:
-                    pass
+                    pass # Item might already exist, ignore for now
         conn.commit()
         log_action(current_user.id, "Added from Pantry", f"Added {len(items_to_add)} items.", household_id)
         flash(f"Added {len(items_to_add)} items from the master pantry list.", 'success')
         conn.close()
         return redirect(url_for('view_household', household_id=household_id))
+
+    # GET request logic
     cursor.execute("SELECT name FROM groceries WHERE household_id = %s", (household_id,))
     household_items = {row['name'] for row in cursor.fetchall()}
     cursor.execute("SELECT * FROM pantry_items ORDER BY category, name")

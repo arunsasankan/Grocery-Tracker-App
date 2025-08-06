@@ -47,15 +47,19 @@
                     </tr>
                 </thead>
                 {% for category, items_in_category in grouped_pantry_items.items() %}
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700 pantry-category-group">
                     <tr class="bg-gray-50 dark:bg-gray-700">
-                        <td colspan="5" class="p-3 text-sm font-bold text-gray-800 dark:text-white">{{ category }}</td>
+                        <td class="p-3">
+                            <input type="checkbox"
+                                class="category-checkbox h-5 w-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500">
+                        </td>
+                        <td colspan="4" class="p-3 text-sm font-bold text-gray-800 dark:text-white">{{ category }}</td>
                     </tr>
                     {% for item in items_in_category %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-600">
                         <td class="p-4">
                             <input id="item-{{ item.id }}" name="pantry_item_id" value="{{ item.id }}" type="checkbox"
-                                class="h-5 w-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                                class="item-checkbox h-5 w-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 disabled:opacity-50"
                                 onchange="toggleRow(this)" {% if item.name in household_items %}disabled{% endif %}>
                         </td>
                         <td class="p-4 text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -100,10 +104,15 @@
         <!-- Mobile Accordion View -->
         <div class="sm:hidden space-y-3">
             {% for category, items_in_category in grouped_pantry_items.items() %}
-            <div class="accordion-container bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div
+                class="accordion-container bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden pantry-category-group">
                 <button type="button"
                     class="accordion-header w-full flex justify-between items-center p-4 text-left font-bold text-gray-800 dark:text-white bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none border-b border-gray-200 dark:border-gray-600">
-                    <span>{{ category }}</span>
+                    <div class="flex items-center">
+                        <input type="checkbox"
+                            class="category-checkbox h-5 w-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 mr-4">
+                        <span>{{ category }}</span>
+                    </div>
                     <div class="flex items-center">
                         <span
                             class="mr-2 px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-xs font-semibold rounded-full">{{
@@ -118,7 +127,7 @@
                         <div class="flex items-center mb-3">
                             <input id="mobile-item-{{ item.id }}" name="pantry_item_id" value="{{ item.id }}"
                                 type="checkbox"
-                                class="h-5 w-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                                class="item-checkbox h-5 w-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 disabled:opacity-50"
                                 onchange="toggleRow(this)" {% if item.name in household_items %}disabled{% endif %}>
                             <label for="mobile-item-{{ item.id }}"
                                 class="ml-3 font-semibold text-gray-800 dark:text-gray-200 {% if item.name in household_items %}text-gray-400 dark:text-gray-500 cursor-not-allowed{% endif %}">
@@ -192,12 +201,30 @@
         // Accordion functionality
         const accordionHeaders = document.querySelectorAll('.accordion-header');
         accordionHeaders.forEach(header => {
-            header.addEventListener('click', () => {
+            header.addEventListener('click', (event) => {
+                // Prevent accordion from closing when clicking the checkbox
+                if (event.target.type === 'checkbox') {
+                    return;
+                }
                 const content = header.nextElementSibling;
                 const icon = header.querySelector('.accordion-icon');
 
                 content.classList.toggle('hidden');
                 icon.classList.toggle('rotate-180');
+            });
+        });
+
+        // Category checkbox functionality
+        const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
+        categoryCheckboxes.forEach(catCheckbox => {
+            catCheckbox.addEventListener('change', () => {
+                const group = catCheckbox.closest('.pantry-category-group');
+                const itemCheckboxes = group.querySelectorAll('.item-checkbox:not(:disabled)');
+
+                itemCheckboxes.forEach(itemCheckbox => {
+                    itemCheckbox.checked = catCheckbox.checked;
+                    toggleRow(itemCheckbox);
+                });
             });
         });
     });
