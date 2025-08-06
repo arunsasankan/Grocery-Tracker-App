@@ -81,3 +81,65 @@ CREATE TABLE audit_log (
     FOREIGN KEY (household_id) REFERENCES households(id) ON DELETE CASCADE
 );
 
+-- 8. Create the master pantry items table
+DROP TABLE IF EXISTS pantry_items;
+CREATE TABLE pantry_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    category ENUM('Dairy & Eggs', 'Bakery', 'Meat & Fish', 'Produce', 'Spices', 'Pulses', 'Grains', 'Condiments', 'Baking', 'Breakfast & Cereal', 'Snacks', 'Frozen Foods', 'Beverages', 'Household & Personal Care', 'Other'),
+    type ENUM('Perishable', 'Non-Perishable')
+);
+
+-- 9. Populate the master pantry items table
+INSERT INTO pantry_items (name, type, category) VALUES
+('Turmeric Powder (Haldi)', 'Non-Perishable', 'Spices'),
+('Red Chilli Powder (Lal Mirch)', 'Non-Perishable', 'Spices'),
+('Coriander Powder (Dhania)', 'Non-Perishable', 'Spices'),
+('Cumin Seeds (Jeera)', 'Non-Perishable', 'Spices'),
+('Mustard Seeds (Rai/Sarson)', 'Non-Perishable', 'Spices'),
+('Garam Masala', 'Non-Perishable', 'Spices'),
+('Asafoetida (Hing)', 'Non-Perishable', 'Spices'),
+('Salt (Namak)', 'Non-Perishable', 'Spices'),
+('Black Peppercorns (Kali Mirch)', 'Non-Perishable', 'Spices'),
+('Cardamom (Elaichi)', 'Non-Perishable', 'Spices'),
+('Cloves (Laung)', 'Non-Perishable', 'Spices'),
+('Cinnamon (Dalchini)', 'Non-Perishable', 'Spices'),
+('Bay Leaves (Tej Patta)', 'Non-Perishable', 'Spices'),
+('Fenugreek Seeds (Methi Dana)', 'Non-Perishable', 'Spices'),
+('Basmati Rice', 'Non-Perishable', 'Grains'),
+('Sona Masoori Rice', 'Non-Perishable', 'Grains'),
+('Whole Wheat Flour (Atta)', 'Non-Perishable', 'Grains'),
+('Gram Flour (Besan)', 'Non-Perishable', 'Grains'),
+('Semolina (Sooji/Rava)', 'Non-Perishable', 'Grains'),
+('Flattened Rice (Poha)', 'Non-Perishable', 'Grains'),
+('All-Purpose Flour (Maida)', 'Non-Perishable', 'Grains'),
+('Split Pigeon Peas (Toor/Arhar Dal)', 'Non-Perishable', 'Pulses'),
+('Split Red Lentils (Masoor Dal)', 'Non-Perishable', 'Pulses'),
+('Split Mung Beans (Moong Dal)', 'Non-Perishable', 'Pulses'),
+('Split Black Gram (Urad Dal)', 'Non-Perishable', 'Pulses'),
+('Chickpeas (Kabuli Chana)', 'Non-Perishable', 'Pulses'),
+('Kidney Beans (Rajma)', 'Non-Perishable', 'Pulses'),
+('Ghee (Clarified Butter)', 'Non-Perishable', 'Baking'),
+('Mustard Oil', 'Non-Perishable', 'Baking'),
+('Sunflower/Vegetable Oil', 'Non-Perishable', 'Baking'),
+('Coconut Oil', 'Non-Perishable', 'Baking'),
+('Onions', 'Perishable', 'Produce'),
+('Tomatoes', 'Perishable', 'Produce'),
+('Potatoes', 'Perishable', 'Produce'),
+('Ginger', 'Perishable', 'Produce'),
+('Garlic', 'Perishable', 'Produce'),
+('Green Chillies', 'Perishable', 'Produce'),
+('Coriander Leaves (Dhania)', 'Perishable', 'Produce'),
+('Lemons', 'Perishable', 'Produce'),
+('Milk', 'Perishable', 'Dairy & Eggs'),
+('Yogurt (Dahi)', 'Perishable', 'Dairy & Eggs'),
+('Paneer (Indian Cottage Cheese)', 'Perishable', 'Dairy & Eggs'),
+('Butter', 'Perishable', 'Dairy & Eggs'),
+('Eggs', 'Perishable', 'Dairy & Eggs'),
+('Sugar (Cheeni)', 'Non-Perishable', 'Condiments'),
+('Jaggery (Gud)', 'Non-Perishable', 'Condiments'),
+('Tea (Chai)', 'Non-Perishable', 'Beverages'),
+('Coffee', 'Non-Perishable', 'Beverages'),
+('Pickles (Achar)', 'Non-Perishable', 'Condiments'),
+('Papad', 'Non-Perishable', 'Snacks');
+

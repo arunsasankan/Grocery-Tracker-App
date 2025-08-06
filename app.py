@@ -16,8 +16,8 @@ app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
 # --- Database Configuration ---
 DB_CONFIG = {
     'host': 'localhost',
-    'user': 'db_user_name',
-    'password': 'db_user_password',
+    'user': 'root',
+    'password': 'Sia@100652',
     'database': 'grocery_db'
 }
 
@@ -490,6 +490,50 @@ def export_shopping_list(household_id):
     conn.close()
     export_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
     return render_template('export_checklist.html', essential_items=essential_items, optional_items=optional_items, export_time=export_time, household_id=household_id)
+
+@app.route('/household/<int:household_id>/pantry', methods=['GET', 'POST'])
+@login_required
+@household_member_required
+def pantry(household_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        items_to_add = request.form.getlist('pantry_item_id')
+        
+        for item_id in items_to_add:
+            quantity = float(request.form.get(f'quantity_{item_id}', 1.0))
+            quantity_unit = request.form.get(f'quantity_unit_{item_id}', 'Count')
+            status = request.form.get(f'status_{item_id}', 'In-Stock')
+
+            cursor.execute("SELECT name, type, category FROM pantry_items WHERE id = %s", (item_id,))
+            pantry_item = cursor.fetchone()
+            if pantry_item:
+                sql = "INSERT INTO groceries (household_id, name, category, type, quantity, quantity_unit, status, created_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                val = (household_id, pantry_item['name'], pantry_item['category'], pantry_item['type'], quantity, quantity_unit, status, current_user.id)
+                try:
+                    cursor.execute(sql, val)
+                except mysql.connector.IntegrityError:
+                    pass # Item might already exist, ignore for now
+        conn.commit()
+        log_action(current_user.id, "Added from Pantry", f"Added {len(items_to_add)} items.", household_id)
+        flash(f"Added {len(items_to_add)} items from the master pantry list.", 'success')
+        conn.close()
+        return redirect(url_for('view_household', household_id=household_id))
+
+    # GET request logic
+    cursor.execute("SELECT name FROM groceries WHERE household_id = %s", (household_id,))
+    household_items = {row['name'] for row in cursor.fetchall()}
+    cursor.execute("SELECT * FROM pantry_items ORDER BY category, name")
+    pantry_items = cursor.fetchall()
+    conn.close()
+    grouped_pantry_items = {}
+    for item in pantry_items:
+        category = item['category']
+        if category not in grouped_pantry_items:
+            grouped_pantry_items[category] = []
+        grouped_pantry_items[category].append(item)
+    return render_template('pantry.html', grouped_pantry_items=grouped_pantry_items, household_items=household_items, household_id=household_id, units=UNITS, statuses=STATUSES)
 
 # --- Main Execution ---
 if __name__ == '__main__':

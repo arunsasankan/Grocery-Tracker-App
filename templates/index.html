@@ -3,6 +3,22 @@
 {% block title %}Inventory - Grocery Tracker{% endblock %}
 {% block content %}
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Toast Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div id="toast-container" class="fixed bottom-5 left-5 z-50">
+        {% for category, message in messages %}
+        <div
+            class="toast-message bg-{{ {'danger': 'red', 'success': 'green', 'info': 'blue'}[category] }}-500 text-white font-bold rounded-lg shadow-md p-4 mb-2 flex items-center justify-between">
+            <span>{{ message }}</span>
+            <button onclick="this.parentElement.style.display='none';"
+                class="ml-4 text-xl font-semibold">&times;</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
     <!-- Responsive Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
@@ -18,33 +34,82 @@
                 </select>
             </div>
         </div>
-        <div
-            class="w-full sm:w-auto flex items-center flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 sm:mt-0">
-            <a href="{{ url_for('dashboard', household_id=household_id) }}"
-                class="w-full sm:w-auto text-center bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-purple-700 transition duration-300">
-                <i class="fas fa-chart-line mr-2"></i>Dashboard
-            </a>
-            <a href="{{ url_for('add_item', household_id=household_id) }}"
-                class="w-full sm:w-auto text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
-                <i class="fas fa-plus mr-2"></i>Add Item
-            </a>
-            <a href="{{ url_for('shopping_list', household_id=household_id) }}"
-                class="w-full sm:w-auto text-center bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300">
-                <i class="fas fa-shopping-cart mr-2"></i>Shopping List
-            </a>
-            <a href="{{ url_for('households') }}"
-                class="w-full sm:w-auto text-center bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300">
-                <i class="fas fa-home mr-2"></i>Manage Households
-            </a>
-            <a href="{{ url_for('logout') }}"
-                class="w-full sm:w-auto text-center bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition duration-300">
-                <i class="fas fa-sign-out-alt mr-2"></i>Logout
-            </a>
+        <!-- Optimized Button Group -->
+        <div class="w-full sm:w-auto flex items-center space-x-2 mt-4 sm:mt-0">
+            <!-- Desktop Buttons -->
+            <div class="hidden sm:flex items-center space-x-2">
+                <a href="{{ url_for('add_item', household_id=household_id) }}"
+                    class="text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                    <i class="fas fa-plus mr-2"></i>Add Item
+                </a>
+                <a href="{{ url_for('shopping_list', household_id=household_id) }}"
+                    class="text-center bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300">
+                    <i class="fas fa-shopping-cart mr-2"></i>Shopping List
+                </a>
+                <div class="relative inline-block text-left">
+                    <div>
+                        <button type="button" id="menu-button"
+                            class="inline-flex justify-center w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none">
+                            More
+                            <i class="fas fa-chevron-down -mr-1 ml-2 h-5 w-5"></i>
+                        </button>
+                    </div>
+                    <div id="dropdown-menu"
+                        class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-20"
+                        role="menu">
+                        <div class="py-1" role="none">
+                            <a href="{{ url_for('dashboard', household_id=household_id) }}"
+                                class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                role="menuitem"><i class="fas fa-chart-line w-5 mr-2"></i>Dashboard</a>
+                            <a href="{{ url_for('pantry', household_id=household_id) }}"
+                                class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                role="menuitem"><i class="fas fa-clipboard-list w-5 mr-2"></i>Master Pantry</a>
+                            <a href="{{ url_for('households') }}"
+                                class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                role="menuitem"><i class="fas fa-home w-5 mr-2"></i>Manage Households</a>
+                            <a href="{{ url_for('logout') }}"
+                                class="text-red-700 dark:text-red-400 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                                role="menuitem"><i class="fas fa-sign-out-alt w-5 mr-2"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Buttons -->
+            <div class="sm:hidden w-full flex flex-col space-y-2">
+                <a href="{{ url_for('add_item', household_id=household_id) }}"
+                    class="text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300">Add
+                    Item</a>
+                <a href="{{ url_for('shopping_list', household_id=household_id) }}"
+                    class="text-center bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300">Shopping
+                    List</a>
+                <div class="relative">
+                    <button type="button" id="mobile-menu-button"
+                        class="w-full text-center bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300">
+                        More Options <i class="fas fa-bars ml-2"></i>
+                    </button>
+                    <div id="mobile-menu"
+                        class="absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-20">
+                        <div class="py-1">
+                            <a href="{{ url_for('dashboard', household_id=household_id) }}"
+                                class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Dashboard</a>
+                            <a href="{{ url_for('pantry', household_id=household_id) }}"
+                                class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Master
+                                Pantry</a>
+                            <a href="{{ url_for('households') }}"
+                                class="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Manage
+                                Households</a>
+                            <a href="{{ url_for('logout') }}"
+                                class="text-red-700 dark:text-red-400 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Search Form -->
-    <div class="mb-6">
+    <div class="mb-6 max-w-md">
         <form action="{{ url_for('view_household', household_id=household_id) }}" method="get" class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fas fa-search text-gray-400"></i>
@@ -199,10 +264,46 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Auto-hide toast messages
+        const toastContainer = document.getElementById('toast-container');
+        if (toastContainer) {
+            setTimeout(() => {
+                toastContainer.style.display = 'none';
+            }, 5000); // Hide after 5 seconds
+        }
+
         // Household Switcher
         document.getElementById('householdSwitcher').addEventListener('change', function () {
             window.location.href = '/household/' + this.value;
         });
+
+        // Desktop Dropdown Toggle
+        const menuButton = document.getElementById('menu-button');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        if (menuButton) {
+            menuButton.addEventListener('click', () => {
+                dropdownMenu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (event) => {
+                if (!menuButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenuButton) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (event) => {
+                if (!mobileMenuButton.contains(event.target) && !mobileMenu.contains(event.target)) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+        }
 
         // Accordion functionality
         const accordionHeaders = document.querySelectorAll('.accordion-header');
