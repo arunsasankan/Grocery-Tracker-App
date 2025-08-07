@@ -2,7 +2,7 @@
 # Import necessary libraries
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import mysql.connector
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -10,16 +10,12 @@ import random
 import string
 
 # --- Flask App Initialization & Configuration ---
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
+import config
 
-# --- Database Configuration ---
-DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'your_mysql_username',
-    'password': 'your_mysql_password',
-    'database': 'grocery_db'
-}
+app = Flask(__name__)
+# Load configuration from the config file
+app.config['SECRET_KEY'] = config.SECRET_KEY
+DB_CONFIG = config.DB_CONFIG
 
 # --- Flask-Login Setup ---
 login_manager = LoginManager()
