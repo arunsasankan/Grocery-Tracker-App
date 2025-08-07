@@ -2,7 +2,7 @@
 # Import necessary libraries
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import mysql.connector
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -47,7 +47,14 @@ def load_user(user_id):
 # --- Database Connection ---
 def get_db_connection():
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(
+        host=DB_CONFIG['host'],
+        user=DB_CONFIG['user'],
+        password=DB_CONFIG['password'],
+        database=DB_CONFIG['database'],
+        port=3306,
+        unix_socket='/var/lib/mysql/mysql.sock'
+        )
         return conn
     except mysql.connector.Error as err:
         print(f"Error connecting to MySQL: {err}")
